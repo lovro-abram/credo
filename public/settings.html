@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F1F6EC">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='4' width='27' height='27' rx='6' fill='%231CA85E'/%3E%3Crect x='5' y='1' width='27' height='27' rx='6' fill='%23FFFFFF' stroke='%2312291A' stroke-width='2'/%3E%3Ctext x='18' y='21' font-size='15' font-family='Arial Black,Arial,sans-serif' font-weight='900' text-anchor='middle' fill='%2312291A'%3EC%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <title>Settings – Credo</title>
+    <meta name="description" content="Credo app settings: font size, wallpaper editor, backup and restore.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://credo.labram.workers.dev/settings">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Credo">
+    <meta property="og:url" content="https://credo.labram.workers.dev/settings">
+    <meta property="og:title" content="Settings – Credo">
+    <meta property="og:description" content="Credo app settings: font size, wallpaper editor, backup and restore.">
+    <meta property="og:image" content="https://credo.labram.workers.dev/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Settings – Credo">
+    <meta name="twitter:description" content="Credo app settings: font size, wallpaper editor, backup and restore.">
+    <meta name="twitter:image" content="https://credo.labram.workers.dev/og-image.png">
+    <meta name="twitter:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=17">
+</head>
+<body data-page="settings">
+
+    <div id="app-container">
+        <header>
+            <h1>Credo</h1>
+        </header>
+
+        <main>
+            <h2 style="margin-top:0; font-size: 1.4rem; color: var(--ink); font-family: var(--font-display); font-weight: 400; text-transform: uppercase;" data-i18n="settings">Settings</h2>
+            
+            <div id="install-pwa-btn" class="card" style="display: none; align-items: center; justify-content: space-between; border-color: var(--green); padding: 20px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span class="material-icons-round" aria-hidden="true" style="color: var(--accent-color); font-size: 32px;">download_for_offline</span>
+                    <div>
+                        <div style="font-weight: 700; color: var(--text-primary);" data-i18n="pwa_install_title">Download App</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);" data-i18n="pwa_install_desc">Use Credo anywhere, even offline.</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="installPWA()" style="width: auto; padding: 10px 20px;" data-i18n="pwa_install_btn">Install</button>
+            </div>
+
+            <div class="card">
+                <div class="setting-item" style="border-bottom: none;">
+                    <span class="setting-label" data-i18n="wallpaper_editor">Wallpaper Editor</span>
+                    <div class="setting-control">
+                        <a href="wallpaper" class="btn btn-primary" style="text-decoration: none;">
+                            <span class="material-icons-round" aria-hidden="true">wallpaper</span>
+                            <span data-i18n="open_wallpaper">Open Editor</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="setting-item">
+                    <label class="setting-label" id="font-size-label" data-i18n="font_size">Font Size</label>
+                    <div class="segment-control" id="font-control" role="radiogroup" aria-labelledby="font-size-label">
+                        <div class="segment-pill" aria-hidden="true"></div>
+                        <button type="button" class="segment-opt" role="radio" aria-checked="false" data-value="small" onclick="changeFontSize('small')" data-i18n="small">Small</button>
+                        <button type="button" class="segment-opt" role="radio" aria-checked="false" data-value="medium" onclick="changeFontSize('medium')" data-i18n="medium">Medium</button>
+                        <button type="button" class="segment-opt" role="radio" aria-checked="false" data-value="large" onclick="changeFontSize('large')" data-i18n="large">Large</button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label" data-i18n="backup">Backup Data</span>
+                    <div class="setting-control">
+                        <button class="btn btn-primary" onclick="exportBackup()" data-i18n="download_backup">Download Backup</button>
+                    </div>
+                </div>
+                <div class="setting-item" style="border-bottom: none;">
+                    <span class="setting-label" data-i18n="restore">Restore Backup</span>
+                    <div class="setting-control">
+                        <input type="file" id="restore-file" accept=".credo,.thinkel,.json" onchange="importBackup(this)">
+                        <label for="restore-file" class="btn btn-secondary" data-i18n="restore">Restore Backup</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="setting-item" style="border-bottom: none;">
+                    <span class="setting-label">Bible Translation</span>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55; text-align: right;">
+                        Berean Standard Bible (BSB) — public domain.
+                        Produced in cooperation with Bible Hub, Discovery Bible,
+                        OpenBible.com and the Berean Bible Translation Committee.
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="./" class="nav-item">
+                <span class="nav-quote-icon" aria-hidden="true">❞</span>
+                <span data-i18n="nav_today">Home</span>
+            </a>
+            <a href="saved" class="nav-item">
+                <span class="material-icons-round" aria-hidden="true">bookmark</span>
+                <span data-i18n="nav_saved">Saved</span>
+            </a>
+            <a href="settings" class="nav-item active">
+                <span class="material-icons-round" aria-hidden="true">settings</span>
+                <span data-i18n="nav_settings">Settings</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" role="status" aria-live="polite">
+        <span class="material-icons-round toast-icon" aria-hidden="true">check_circle</span>
+        <span id="toast-message">Message</span>
+    </div>
+
+    <script src="js/app.js?v=17"></script>
+    <script>
+        // Initialize settings page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            updateTexts();
+            requestAnimationFrame(() => {
+                updateControlUI('font-control', localStorage.getItem('fontSize') || 'medium');
+            });
+        });
+    </script>
+</body>
+</html>

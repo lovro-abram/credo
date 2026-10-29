@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F1F6EC">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='4' width='27' height='27' rx='6' fill='%231CA85E'/%3E%3Crect x='5' y='1' width='27' height='27' rx='6' fill='%23FFFFFF' stroke='%2312291A' stroke-width='2'/%3E%3Ctext x='18' y='21' font-size='15' font-family='Arial Black,Arial,sans-serif' font-weight='900' text-anchor='middle' fill='%2312291A'%3EC%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <title>Saved Passages – Credo</title>
+    <meta name="description" content="Your saved Bible passages and personal notes in the Credo app.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://credo.labram.workers.dev/saved">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Credo">
+    <meta property="og:url" content="https://credo.labram.workers.dev/saved">
+    <meta property="og:title" content="Saved Passages – Credo">
+    <meta property="og:description" content="Your saved Bible passages and personal notes.">
+    <meta property="og:image" content="https://credo.labram.workers.dev/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Saved Passages – Credo">
+    <meta name="twitter:description" content="Your saved Bible passages and personal notes, stored only in your browser.">
+    <meta name="twitter:image" content="https://credo.labram.workers.dev/og-image.png">
+    <meta name="twitter:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=17">
+</head>
+<body data-page="saved">
+
+    <div id="app-container">
+        <header>
+            <h1>Credo</h1>
+        </header>
+
+        <main>
+            <h2 class="vh" data-i18n="nav_saved">Saved</h2>
+            <div class="saved-tabs" role="tablist" aria-label="Saved content">
+                <button type="button" class="saved-tab active" id="tab-fav" role="tab" aria-selected="true" aria-controls="saved-favorites-container" onclick="switchSavedTab('fav')">
+                    <span class="material-icons-round" aria-hidden="true">favorite</span>
+                    <span data-i18n="favorites">Favorites</span>
+                </button>
+                <button type="button" class="saved-tab" id="tab-notes" role="tab" aria-selected="false" aria-controls="saved-notes-container" onclick="switchSavedTab('notes')">
+                    <span class="material-icons-round" aria-hidden="true">edit_note</span>
+                    <span data-i18n="notes">Notes</span>
+                </button>
+            </div>
+
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <span class="material-icons-round" aria-hidden="true">search</span>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search..." oninput="handleSearch(this.value)">
+                </div>
+            </div>
+
+            <div id="saved-favorites-container" role="tabpanel" aria-labelledby="tab-fav">
+                <div id="favorites-list"></div>
+                <div id="no-favorites" class="empty-state" style="display:none;">
+                    <span class="material-icons-round empty-icon" aria-hidden="true">favorite_border</span>
+                    <div class="empty-title" data-i18n="empty_fav_title">Nothing saved yet</div>
+                    <p data-i18n="no_fav">No saved passages.</p>
+                    <a href="./" class="btn btn-primary" data-i18n="empty_cta">See today's passage</a>
+                </div>
+            </div>
+
+            <div id="saved-notes-container" role="tabpanel" aria-labelledby="tab-notes" style="display: none;">
+                <div id="notes-list"></div>
+                <div id="no-notes" class="empty-state" style="display:none;">
+                    <span class="material-icons-round empty-icon" aria-hidden="true">edit_note</span>
+                    <div class="empty-title" data-i18n="empty_notes_title">No thoughts yet</div>
+                    <p data-i18n="no_notes">No thoughts written.</p>
+                    <a href="./" class="btn btn-primary" data-i18n="empty_cta">See today's passage</a>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="./" class="nav-item">
+                <span class="nav-quote-icon" aria-hidden="true">❞</span>
+                <span data-i18n="nav_today">Home</span>
+            </a>
+            <a href="saved" class="nav-item active">
+                <span class="material-icons-round" aria-hidden="true">bookmark</span>
+                <span data-i18n="nav_saved">Saved</span>
+            </a>
+            <a href="settings" class="nav-item">
+                <span class="material-icons-round" aria-hidden="true">settings</span>
+                <span data-i18n="nav_settings">Settings</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Notes Modal -->
+    <div id="notes-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" id="notes-modal-title" data-i18n="my_thoughts">My Thoughts</h3>
+                <button class="btn btn-icon-only btn-secondary" style="width:auto;" onclick="closeNotesModal()">
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <div id="modal-quote-ref" class="modal-quote-ref">
+                <span id="modal-quote-text" class="modal-quote-text">...</span>
+                <span id="modal-quote-author" class="modal-quote-author">...</span>
+            </div>
+            
+            <textarea id="modal-note-input" class="modal-note-area" placeholder="..." oninput="saveNoteFromModal()"></textarea>
+            <button class="btn btn-primary" onclick="closeNotesModal()" data-i18n="save_close">Save & Close</button>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" onclick="closeDeleteModal(event)">
+        <div class="modal-card">
+            <span class="material-icons-round" aria-hidden="true" style="color:var(--red); font-size:48px; display:block; width:100%; text-align:center; margin-bottom:15px;">warning</span>
+            <h3 class="modal-title" style="text-align:center;" id="delete-modal-title" data-i18n="delete_confirm_title">Remove Favorite?</h3>
+            <p style="color:var(--ink-soft); margin-bottom:25px; text-align:center;" id="delete-modal-text" data-i18n="delete_confirm_text">Are you sure you want to remove this passage from your favorites?</p>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button class="btn btn-secondary" onclick="closeDeleteModal(null, true)" data-i18n="cancel">Cancel</button>
+                <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()" data-i18n="delete_yes">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" role="status" aria-live="polite">
+        <span class="material-icons-round toast-icon" aria-hidden="true">check_circle</span>
+        <span id="toast-message">Message</span>
+    </div>
+
+    <script src="js/app.js?v=17"></script>
+    <script>
+        // Initialize saved page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            updateTexts();
+            document.getElementById('search-input').value = "";
+            searchQuery = "";
+            renderSaved();
+        });
+    </script>
+</body>
+</html>

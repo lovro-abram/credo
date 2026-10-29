@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F1F6EC">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='4' width='27' height='27' rx='6' fill='%231CA85E'/%3E%3Crect x='5' y='1' width='27' height='27' rx='6' fill='%23FFFFFF' stroke='%2312291A' stroke-width='2'/%3E%3Ctext x='18' y='21' font-size='15' font-family='Arial Black,Arial,sans-serif' font-weight='900' text-anchor='middle' fill='%2312291A'%3EC%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
+    <title>Credo – Daily Gospel Verse</title>
+    <meta name="description" content="A daily Bible verse — the Gospel passage of the day from the Berean Standard Bible (BSB). Save favorites, write private notes and share it as a 9:16 image. Free web app and PWA.">
+    <meta name="keywords" content="daily bible verse, gospel of the day, daily gospel, berean standard bible, bsb, scripture, bible passages, liturgical calendar, christian web app, bible pwa">
+    <meta name="author" content="Lovro Abram">
+    <link rel="canonical" href="https://credo.labram.workers.dev/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Credo">
+    <meta property="og:url" content="https://credo.labram.workers.dev/">
+    <meta property="og:title" content="Credo – Daily Gospel Verse">
+    <meta property="og:description" content="A Gospel verse every day — favorites, notes and a wallpaper editor. Free Bible web app.">
+    <meta property="og:image" content="https://credo.labram.workers.dev/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Credo – Daily Gospel Verse">
+    <meta name="twitter:description" content="A Gospel verse every day — from the Berean Standard Bible.">
+    <meta name="twitter:image" content="https://credo.labram.workers.dev/og-image.png">
+    <meta name="twitter:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Credo",
+      "alternateName": "Credo – Daily Gospel Verse",
+      "url": "https://credo.labram.workers.dev/",
+      "applicationCategory": "LifestyleApplication",
+      "operatingSystem": "Any",
+      "description": "A Bible (Gospel) verse every day from the Berean Standard Bible (public domain), following the daily liturgical calendar. Save favorites, write notes and create wallpapers. Free English-language PWA.",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      }
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=17">
+</head>
+<body data-page="home">
+
+    <div id="app-container">
+        <header>
+            <h1>Credo</h1>
+        </header>
+
+        <main>
+            <div class="card date-card">
+                <button class="date-picker-btn" onclick="openDatePicker()" aria-label="Choose date">
+                    <span class="material-icons-round" aria-hidden="true">today</span>
+                </button>
+                <div class="date-content">
+                    <div id="date-label" class="date-label" data-i18n="today">Today</div>
+                    <div id="current-date" class="date-text">...</div>
+                </div>
+                <input type="date" id="hidden-date-input" onchange="handleDateChange(this.value)" tabindex="-1" aria-label="Change date" style="opacity: 0; position: absolute; pointer-events: none; width:1px; height:1px;">
+            </div>
+
+            <div class="card">
+                <div id="quote-content-wrapper">
+                    <div id="daily-quote-text" class="quote-text">...</div>
+                    <div id="daily-quote-author" class="quote-author"></div>
+                    <div id="daily-quote-source" class="quote-source" style="display:none;"></div>
+                    <div class="action-buttons">
+                        <button class="action-btn primary" onclick="onShareClick()" aria-label="Share passage">
+                            <span class="material-icons-round" aria-hidden="true">share</span>
+                        </button>
+                        <button id="btn-fav-daily" class="action-btn fav" onclick="toggleFavorite(currentQuote.id)" aria-label="Save to favorites">
+                            <span class="material-icons-round" aria-hidden="true">favorite_border</span>
+                        </button>
+                        <button class="action-btn" onclick="openNotesModal()" aria-label="Add a thought">
+                            <span class="material-icons-round" aria-hidden="true">edit_note</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="./" class="nav-item active">
+                <span class="nav-quote-icon" aria-hidden="true">❞</span>
+                <span data-i18n="nav_today">Home</span>
+            </a>
+            <a href="saved" class="nav-item">
+                <span class="material-icons-round" aria-hidden="true">bookmark</span>
+                <span data-i18n="nav_saved">Saved</span>
+            </a>
+            <a href="settings" class="nav-item">
+                <span class="material-icons-round" aria-hidden="true">settings</span>
+                <span data-i18n="nav_settings">Settings</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Notes Modal -->
+    <div id="notes-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" id="notes-modal-title" data-i18n="my_thoughts">My Thoughts</h3>
+                <button class="btn btn-icon-only btn-secondary" style="width:auto;" onclick="closeNotesModal()">
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <div id="modal-quote-ref" class="modal-quote-ref">
+                <span id="modal-quote-text" class="modal-quote-text">...</span>
+                <span id="modal-quote-author" class="modal-quote-author">...</span>
+            </div>
+
+            <textarea id="modal-note-input" class="modal-note-area" placeholder="..." oninput="saveNoteFromModal()"></textarea>
+            <button class="btn btn-primary" onclick="closeNotesModal()" data-i18n="save_close">Save & Close</button>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" id="share-modal-title" data-i18n="share_quote">Share Passage</h3>
+                <button class="btn btn-icon-only btn-secondary" style="width:auto;" onclick="closeShareModal()">
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <div id="share-quote-ref" class="modal-quote-ref">
+                <span id="share-quote-text" class="modal-quote-text">...</span>
+                <span id="share-quote-author" class="modal-quote-author">...</span>
+            </div>
+
+            <div class="share-options">
+                <button class="share-option" onclick="shareDesktopAction('download')">
+                    <span class="share-icon si-download"><span class="material-icons-round" aria-hidden="true">download</span></span>
+                    <span class="share-label" data-i18n="share_download">Download image</span>
+                    <span class="share-hint" data-i18n="share_hint_download">9:16 image</span>
+                </button>
+                <button class="share-option" onclick="shareDesktopAction('copy')">
+                    <span class="share-icon si-copy"><span class="material-icons-round" aria-hidden="true">content_copy</span></span>
+                    <span class="share-label" data-i18n="share_copy_text">Copy passage</span>
+                    <span class="share-hint" data-i18n="share_hint_text">text + link</span>
+                </button>
+            </div>
+
+            <p class="share-note" data-i18n="share_note">The image is 9:16 — perfect for an Instagram story or wallpaper. On phones, the Share button opens the system share sheet right away, with the image and the passage.</p>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" role="status" aria-live="polite">
+        <span class="material-icons-round toast-icon" aria-hidden="true">check_circle</span>
+        <span id="toast-message">Message</span>
+    </div>
+
+    <script src="js/app.js?v=17"></script>
+    <script>
+        function openDatePicker() {
+            const input = document.getElementById('hidden-date-input');
+            if (input.showPicker) {
+                try {
+                    input.showPicker();
+                } catch (e) {
+                    input.click();
+                }
+            } else {
+                input.click();
+            }
+        }
+
+        // Initialize home page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadDate();
+            loadDailyQuote();
+            updateTexts();
+        });
+    </script>
+</body>
+</html>

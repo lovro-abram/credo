@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://credo.labram.workers.dev/sitemap.xml

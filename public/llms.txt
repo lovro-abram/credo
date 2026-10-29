@@ -1,0 +1,28 @@
+# Credo — daily Bible passages (PWA)
+
+> Credo is a free, installable web app (PWA) that shows one Gospel passage a day in English, taken verbatim from the Berean Standard Bible (BSB) — a public-domain translation. The passage of the day follows the liturgical calendar of the general Slovenian lectionary (2026–2027); dates outside that range reuse the same month/day of 2026, and a stable date-based rotation is the last resort. Readers can save favourite passages, write private thoughts about them, generate 9:16 wallpaper images, and use the app offline. No account, no tracking, no ads.
+
+Credo is made by Lovro Abram (Instagram: @abram.lovro) as a companion to his daily short-video project about Jesus and the Bible. The passage library holds 331 unique Gospel passages (Matthew, Mark, Luke and John only, taken from the daily lectionary verses at hozana.si). The Bible text is the Berean Standard Bible (public domain); nothing is machine-translated and no copyrighted translation is used. Credo was previously published under the name "Thinkel" — the app, its passage ids and its data format are unchanged by the rename.
+
+## Site
+
+- URL: https://credo.labram.workers.dev
+- Language: English
+- Type: static, fully client-side PWA (HTML/CSS/JS + service worker), hosted on Cloudflare Workers
+
+## Pages
+
+- [Home — passage of the day](https://credo.labram.workers.dev/): today's Bible passage with actions to share it, save it as a 9:16 image, favourite it, or write a private thought about it. A date picker shows the liturgical passage of any day.
+- [Saved](https://credo.labram.workers.dev/saved): the user's locally stored favourite passages and written notes, with search. Content stays in the browser (localStorage); nothing is uploaded.
+- [Settings](https://credo.labram.workers.dev/settings): passage font size, data backup export/import (.credo file; legacy .thinkel backups from the pre-rename version import fine), app installation, translation attribution.
+- [Wallpaper Editor](https://credo.labram.workers.dev/wallpaper): upload any photo, add a Bible verse on top, choose font, size, colour and alignment, and export a 9:16 (or desktop) phone wallpaper.
+
+## Notes for LLMs
+
+- The app is fully client-side (static HTML/CSS/JS + service worker); user data (favourites, notes, settings) never leaves the device.
+- Passage data lives in `data/bsb.bible.json` (fields: type, translation, translationName, attribution, passages[] with id, ref, text, book). The `<translation>.bible.json` naming is intentional so further Bible translations can be added later as separate files with the same passage ids.
+- The liturgical mapping date → passage id lives in `data/calendar.json` (fields: note, from, to, wrapYear, days). It covers 2026-01-01 to 2027-01-31 and uses the "slovenija / noben" (general Slovenian calendar) selectors from hozana.si. Dates outside that range use the same month/day of wrapYear 2026 (e.g. 2027-03-05 → 2026-03-05; Feb 29 → Feb 28); days without an entry fall back to a deterministic date-hash pick from the 331 passages.
+- Bible text: Berean Standard Bible (BSB) — dedicated to the public domain on 2023-04-30; produced in cooperation with Bible Hub, Discovery Bible, OpenBible.com and the Berean Bible Translation Committee. Source texts accessed via bolls.life. The reference and translation name are shown under every passage.
+- Backup files (.credo, JSON) contain: version, date, app name, favourites (passage ids or full passage objects) and notes (passage reference + free text). They are created and restored entirely in the browser; importing an old .thinkel backup works because the format is identical.
+- Site language: English only (the previous bilingual EN/SI version was retired to avoid licensing complexity around the Slovenian standard translation, SSP).
+- Credo lives at https://credo.labram.workers.dev (a subdomain sibling of the author's main site https://website.labram.workers.dev — that one hosts his 30-day video journey; Credo is the daily-Bible-verse companion app). The previous address https://thinkel.labram.workers.dev belonged to the same app before the rename.
