@@ -11,6 +11,30 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   Cross-Origin-Opener-Policy: same-origin
 
+# HTML must always revalidate with the server (cheap ETag 304) — without an
+# explicit no-cache the browser may heuristic-cache pages and a deploy stays
+# invisible until a hard reload (the "stuck on old version" bug).
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/bible
+  Cache-Control: no-cache
+/bible.html
+  Cache-Control: no-cache
+/saved
+  Cache-Control: no-cache
+/saved.html
+  Cache-Control: no-cache
+/settings
+  Cache-Control: no-cache
+/settings.html
+  Cache-Control: no-cache
+/wallpaper
+  Cache-Control: no-cache
+/wallpaper.html
+  Cache-Control: no-cache
+
 # Static assets are cache-busted with ?v= so they can live in the browser cache.
 # HTML and /data/*.json keep the default revalidation (fresh passages + deploys).
 /css/*

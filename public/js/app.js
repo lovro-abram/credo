@@ -1548,11 +1548,48 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Register Service Worker for PWA
+// Register Service Worker for PWA — with self-healing updates:
+//   • updateViaCache:'none' → the sw.js update check can never be answered
+//     from the browser HTTP cache (a stale sw.js here once kept the old
+//     worker — and therefore the old whole app — alive for days).
+//   • When an UPDATED worker takes over an already-controlled page, reload
+//     ONCE so the new version is on screen without any hard reset. The very
+//     first claim (page never had a controller) is NOT a version change and
+//     must not trigger a reload.
+//   • While the tab stays open, check for updates hourly.
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered', reg))
+        let pageHadController = !!navigator.serviceWorker.controller;
+        let reloading = false;
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!pageHadController) { pageHadController = true; return; }
+            if (reloading) return;
+            reloading = true;
+            console.log('[SW] New version took over — reloading');
+            window.location.reload();
+        });
+
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+            .then(reg => {
+                console.log('Service Worker registered', reg);
+                // An update may already sit in "waiting" from a previous visit
+                // — activate it right away so users never lag versions behind.
+                if (reg.waiting && navigator.serviceWorker.controller) {
+                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+                // Future updates: activate as soon as they finish installing.
+                reg.addEventListener('updatefound', () => {
+                    const nw = reg.installing;
+                    if (!nw) return;
+                    nw.addEventListener('statechange', () => {
+                        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                            nw.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    });
+                });
+                setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+            })
             .catch(err => console.error('Service Worker registration failed', err));
     });
 }
