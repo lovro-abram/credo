@@ -3,10 +3,10 @@
    sweep: floor-clean (tokens only, no transition:all, focus-visible everywhere, reduced-motion fallback, user scaling restored) */
 
 /* ═══ SELF-HOSTED DISPLAY FONT ════════════════════════════
-   Archivo Black hosted locally (v8): the h1 titles stay bold even
-   when Google Fonts is slow/blocked. Same design as the Google
-   release; declared after Google's stylesheet, so it wins the
-   cascade for the 'Archivo Black' family. */
+   Archivo Black hosted locally: the h1 titles stay bold even on a
+   slow connection. All other fonts (Space Grotesk, Playfair Display,
+   Lato, Caveat, Merriweather, Material Icons Round) come from
+   css/fonts.css — the app loads no font from Google at all. */
 @font-face {
     font-family: 'Archivo Black';
     src: url('../fonts/ArchivoBlack-Regular.ttf') format('truetype');

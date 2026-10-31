@@ -1,4 +1,4 @@
-const CACHE_NAME = 'credo-v25';
+const CACHE_NAME = 'credo-v26';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,7 +7,30 @@ const ASSETS_TO_CACHE = [
   './settings.html',
   './wallpaper.html',
   './css/style.css',
+  './css/fonts.css',
   './fonts/ArchivoBlack-Regular.ttf',
+  // Self-hosted fonts (v26): nothing is fetched from Google any more.
+  './fonts/space-grotesk-latin-normal-300-700.woff2',
+  './fonts/space-grotesk-latin-ext-normal-300-700.woff2',
+  './fonts/playfair-display-latin-normal-400-900.woff2',
+  './fonts/playfair-display-latin-ext-normal-400-900.woff2',
+  './fonts/playfair-display-latin-italic-400-900.woff2',
+  './fonts/playfair-display-latin-ext-italic-400-900.woff2',
+  './fonts/lato-latin-normal-300.woff2',
+  './fonts/lato-latin-normal-400.woff2',
+  './fonts/lato-latin-normal-700.woff2',
+  './fonts/lato-latin-italic-400.woff2',
+  './fonts/lato-latin-ext-normal-300.woff2',
+  './fonts/lato-latin-ext-normal-400.woff2',
+  './fonts/lato-latin-ext-normal-700.woff2',
+  './fonts/lato-latin-ext-italic-400.woff2',
+  './fonts/caveat-latin-normal-400-700.woff2',
+  './fonts/caveat-latin-ext-normal-400-700.woff2',
+  './fonts/merriweather-latin-normal-300-900.woff2',
+  './fonts/merriweather-latin-ext-normal-300-900.woff2',
+  './fonts/merriweather-latin-italic-300-900.woff2',
+  './fonts/merriweather-latin-ext-italic-300-900.woff2',
+  './fonts/material-icons-round-latin.woff2',
   './js/app.js',
   './js/bible.js',
   './manifest.json',
@@ -15,10 +38,7 @@ const ASSETS_TO_CACHE = [
   './data/calendar.json',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png',
-  './icons/icon-maskable-512x512.png',
-  'https://fonts.googleapis.com/icon?family=Material+Icons+Round',
-  'https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap',
-  'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Caveat:wght@400;700&family=Montserrat:wght@400;600&family=Merriweather:wght@300;400;700&family=Dancing+Script:wght@400;700&display=swap'
+  './icons/icon-maskable-512x512.png'
 ];
 // NOTE: data/bsb-full/ (the whole-Bible reader data, ~4 MB) is deliberately
 // NOT in this list and is NEVER runtime-cached either (see the fetch handler

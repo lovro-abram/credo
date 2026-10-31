@@ -26,9 +26,8 @@
     <meta property="og:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
     <meta property="og:locale" content="en_US">
 
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Caveat:wght@400;700&family=Montserrat:wght@400;600&family=Merriweather:wght@300;400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=24">
+    <link rel="stylesheet" href="css/fonts.css?v=26">
+    <link rel="stylesheet" href="css/style.css?v=26">
 
     <style>
         /* ═══ Wallpaper Editor — 4-step wizard ═══
@@ -182,7 +181,7 @@
         }
         .control-group:first-child .control-label { margin-top: 0; }
 
-        /* Chip rows: ratios, presets, fonts, align, shadow, backdrop */
+        /* Chip rows: ratios, fonts, align, reference align, shadow, backdrop */
         .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
         .chip {
             padding: 8px 14px;
@@ -205,9 +204,16 @@
         .font-option.playfair   { font-family: 'Playfair Display', serif; }
         .font-option.lato       { font-family: 'Lato', sans-serif; }
         .font-option.caveat     { font-family: 'Caveat', cursive; font-size: 1rem; }
-        .font-option.montserrat { font-family: 'Montserrat', sans-serif; }
         .font-option.merriweather { font-family: 'Merriweather', serif; font-size: 0.78rem; }
-        .font-option.dancing    { font-family: 'Dancing Script', cursive; font-size: 1rem; }
+
+        /* Small print under the reference-alignment chips */
+        .ref-note {
+            margin: 6px 2px 0;
+            font-family: var(--font-ui);
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+        }
 
         /* Color swatches */
         .color-swatch {
@@ -467,25 +473,15 @@
                     </div>
                 </section>
 
-                <!-- ── STEP 2: typography (presets, font, size, align, drag) ── -->
+                <!-- ── STEP 2: typography (font, size, align, reference, drag) ── -->
                 <section class="wstep" id="wstep-2">
                     <div class="step-card">
-                        <label class="control-label" data-i18n="wp_presets">Quick Looks</label>
-                        <div class="chip-row">
-                            <button class="chip preset-btn" data-preset="clean" onclick="applyPreset('clean', this)" data-i18n="wp_p_clean">Clean</button>
-                            <button class="chip preset-btn" data-preset="elegant" onclick="applyPreset('elegant', this)" data-i18n="wp_p_elegant">Elegant</button>
-                            <button class="chip preset-btn" data-preset="handwriting" onclick="applyPreset('handwriting', this)" data-i18n="wp_p_script">Handwriting</button>
-                            <button class="chip preset-btn" data-preset="modern" onclick="applyPreset('modern', this)" data-i18n="wp_p_modern">Modern</button>
-                        </div>
-
                         <label class="control-label" data-i18n="wp_font">Font Style</label>
                         <div class="chip-row">
                             <button class="chip font-option playfair active" data-font="Playfair Display" onclick="changeFont('Playfair Display', this)" data-i18n="wp_f_classic">Classic</button>
                             <button class="chip font-option lato" data-font="Lato" onclick="changeFont('Lato', this)" data-i18n="wp_f_clean">Clean</button>
                             <button class="chip font-option caveat" data-font="Caveat" onclick="changeFont('Caveat', this)" data-i18n="wp_f_relaxed">Relaxed</button>
-                            <button class="chip font-option montserrat" data-font="Montserrat" onclick="changeFont('Montserrat', this)" data-i18n="wp_f_modern">Modern</button>
                             <button class="chip font-option merriweather" data-font="Merriweather" onclick="changeFont('Merriweather', this)" data-i18n="wp_f_elegant">Elegant</button>
-                            <button class="chip font-option dancing" data-font="Dancing Script" onclick="changeFont('Dancing Script', this)" data-i18n="wp_f_script">Handwriting</button>
                         </div>
 
                         <label class="control-label" data-i18n="wp_size">Text Size</label>
@@ -507,6 +503,20 @@
                                 <span class="material-icons-round" aria-hidden="true">format_align_right</span>
                             </button>
                         </div>
+
+                        <label class="control-label" data-i18n="wp_ref_align">Reference Alignment</label>
+                        <div class="chip-row" id="ref-align-row">
+                            <button class="chip ref-align-btn" data-ref-align="left" onclick="changeRefAlign('left', this)" title="Left" data-i18n-title="wp_left">
+                                <span class="material-icons-round" aria-hidden="true">format_align_left</span>
+                            </button>
+                            <button class="chip ref-align-btn active" data-ref-align="center" onclick="changeRefAlign('center', this)" title="Center" data-i18n-title="wp_center">
+                                <span class="material-icons-round" aria-hidden="true">format_align_center</span>
+                            </button>
+                            <button class="chip ref-align-btn" data-ref-align="right" onclick="changeRefAlign('right', this)" title="Right" data-i18n-title="wp_right">
+                                <span class="material-icons-round" aria-hidden="true">format_align_right</span>
+                            </button>
+                        </div>
+                        <div class="ref-note" data-i18n="wp_ref_note">Used when the reference sits on its own line</div>
 
                         <div class="drag-hint" id="drag-hint">
                             <span class="material-icons-round" aria-hidden="true">open_with</span>
@@ -615,10 +625,15 @@
     <script>
         // ═══════════════════════════════════════════════════════════════
         // CREDO Wallpaper Editor — 4-step wizard
-        //  1 Picture (upload + aspect ratio)   2 Text (presets/typography)
-        //  3 Color (color/shadow/backdrop)     4 Save / share
+        //  1 Picture (upload + aspect ratio)   2 Typography (font, size,
+        //    alignment + the italic scripture reference)   3 Color
+        //    (color/shadow/backdrop)   4 Save / share
         // Left/right margins and their lock were REMOVED by design; the
         // vertical position is set by dragging the text on the preview.
+        // The reference ("- Luke 14:10") uses the same family and colour
+        // as the passage, italic and smaller; it joins the last line when
+        // it fully fits, otherwise it drops to its own line, aligned per
+        // the Reference Alignment option.
         // Last-used look is remembered in localStorage (wpEditorState);
         // readability (color+shadow) is auto-picked per image from the
         // brightness under the text until the user overrides it.
@@ -649,11 +664,11 @@
                 wp_size: 'Text Size',
                 wp_small: 'Small', wp_large: 'Large',
                 wp_align: 'Text Alignment', wp_left: 'Left', wp_center: 'Center', wp_right: 'Right',
-                wp_presets: 'Quick Looks',
-                wp_p_clean: 'Clean', wp_p_elegant: 'Elegant', wp_p_script: 'Handwriting', wp_p_modern: 'Modern',
                 wp_drag_hint: 'Drag the text on the picture to move it up or down',
                 wp_font: 'Font Style',
-                wp_f_classic: 'Classic', wp_f_clean: 'Clean', wp_f_relaxed: 'Relaxed', wp_f_modern: 'Modern', wp_f_elegant: 'Elegant', wp_f_script: 'Handwriting',
+                wp_f_classic: 'Classic', wp_f_clean: 'Clean', wp_f_relaxed: 'Relaxed', wp_f_elegant: 'Elegant',
+                wp_ref_align: 'Reference Alignment',
+                wp_ref_note: 'Used when the reference sits on its own line',
                 wp_color: 'Text Color', wp_c_white: 'White', wp_c_black: 'Black', wp_c_custom: 'Custom color',
                 wp_shadow: 'Text Shadow', wp_shadow_dark: 'Dark', wp_shadow_light: 'Light',
                 wp_backdrop: 'Backdrop Behind Text', wp_bd_none: 'None', wp_bd_dim: 'Dim', wp_bd_blur: 'Blur',
@@ -715,11 +730,15 @@
             return { w: 1080, h: 1440 };   // '3:4'
         }
 
+        const FONT_OPTIONS = ['Playfair Display', 'Lato', 'Caveat', 'Merriweather'];
+        const REF_ALIGNS = ['left', 'center', 'right'];
+
         const DEFAULT_SETTINGS = {
             ratio: 'original',
             font: 'Playfair Display',
             fontSize: 40,
             align: 'center',
+            refAlign: 'center',         // alignment when the reference gets its own line
             top: 50,                    // vertical position in % (5..95)
             colorMode: 'white',         // 'white' | 'black' | 'custom'
             customColor: '#81C784',
@@ -732,13 +751,21 @@
             try {
                 const saved = JSON.parse(localStorage.getItem('wpEditorState') || '{}');
                 delete saved.text;              // the passage always comes from the daily loader
+                // Fonts removed from the picker (e.g. Montserrat, Dancing
+                // Script) must never resurrect themselves from storage.
+                if (saved.font && !FONT_OPTIONS.includes(saved.font)) {
+                    saved.font = DEFAULT_SETTINGS.font;
+                }
+                if (saved.refAlign && !REF_ALIGNS.includes(saved.refAlign)) delete saved.refAlign;
                 return Object.assign({}, DEFAULT_SETTINGS, saved);
             } catch (e) {
                 return Object.assign({}, DEFAULT_SETTINGS);
             }
         }
         function persistSettings() {
-            localStorage.setItem('wpEditorState', JSON.stringify(settings));
+            const copy = Object.assign({}, settings);
+            delete copy.text;        // the passage is re-loaded fresh every day
+            localStorage.setItem('wpEditorState', JSON.stringify(copy));
         }
 
         function effectiveColor() {
@@ -827,7 +854,11 @@
                 quote = currentQuotes[seed % currentQuotes.length];
             }
             currentQuote = quote;
-            settings.text = currentQuote.text || "";
+            // data/bsb.bible.json names the citation "ref"; the fallback
+            // passages above use "author". Normalise so the canvas and the
+            // share sheet can both rely on .author.
+            if (currentQuote && !currentQuote.author) currentQuote.author = currentQuote.ref || '';
+            settings.text = (currentQuote && currentQuote.text) || "";
 
             if (currentImage) drawCanvas();
         }
@@ -941,6 +972,12 @@
             return lines.map(l => l.trim());
         }
 
+        // Row height the italic reference occupies when it drops to its own
+        // line — a bit tighter than a passage line, so it hugs the text.
+        function refLineH(fontPx) {
+            return fontPx * 1.15;
+        }
+
         function roundRectPath(c, x, y, w, h, r) {
             c.beginPath();
             c.moveTo(x + r, y);
@@ -971,42 +1008,101 @@
             }
             if (!settings.text) return;
 
-            // 2. text layout
-            const sizeUnit = w / 400;
-            const fontPx = settings.fontSize * sizeUnit;
+            // 2. text layout — layout(fp) computes the whole block for a
+            //    main font size fp. AUTO-FIT: if the passage plus its
+            //    reference cannot fit on the picture at the chosen size,
+            //    the block is scaled down just enough to fit; the size
+            //    slider remains the user's choice for everything that fits.
             const sidePad = 0.08 * w;               // fixed, margins removed by design
             const maxW = w - sidePad * 2;
-            c.font = fontPx + 'px "' + settings.font + '"';
-            c.textAlign = settings.align;
-            c.textBaseline = 'middle';
-            const lines = wrapLines(c, settings.text, maxW);
-            const lineHeight = fontPx * 1.3;
-            const blockH = lines.length * lineHeight;
+
+            // ── Reference ("- Luke 14:10"): same family and colour as the
+            //    passage, italic and smaller. The whole reference is ONE
+            //    unbreakable block: it joins the LAST line when it fully
+            //    fits next to it, otherwise it drops to its own line,
+            //    aligned per settings.refAlign.
+            const refText = (currentQuote && currentQuote.author) ? '- ' + currentQuote.author : '';
+            const REF_RATIO = 0.62;                 // reference size vs passage size
+            const REF_GAP_RATIO = 0.45;             // gap vs reference size
+            const refPxFor = (fp) => fp * REF_RATIO;
+            const refGapFor = (fp) => fp * REF_RATIO * REF_GAP_RATIO;
+
+            const layout = (fp) => {
+                const mainFont = fp + 'px "' + settings.font + '"';
+                c.font = mainFont;
+                const ls = wrapLines(c, settings.text, maxW);
+                const lh = fp * 1.3;
+                const lws = ls.map(l => c.measureText(l).width);
+                let rW = 0, rOwn = false;
+                if (refText) {
+                    c.font = 'italic ' + refPxFor(fp) + 'px "' + settings.font + '"';
+                    rW = c.measureText(refText).width;
+                    c.font = mainFont;
+                    rOwn = (lws[ls.length - 1] + refGapFor(fp) + rW) > maxW;
+                    if (!rOwn) {
+                        // the last line becomes "text + gap + reference"
+                        lws[ls.length - 1] += refGapFor(fp) + rW;
+                    }
+                }
+                return {
+                    ls, lh, lws, rW, rOwn,
+                    blockH: ls.length * lh + (rOwn ? refLineH(fp) : 0)
+                };
+            };
+
+            const sizeUnit = w / 400;
+            let fontPx = settings.fontSize * sizeUnit;
+            let lay = layout(fontPx);
+            const maxBlockH = 0.92 * h;
+            if (lay.blockH > maxBlockH) {
+                fontPx = Math.max(12, fontPx * maxBlockH / lay.blockH);
+                lay = layout(fontPx);
+            }
+            const lines = lay.ls;
+            const lineHeight = lay.lh;
+            const lineWs = lay.lws;
+            const refW = lay.rW;
+            const refOwnLine = lay.rOwn;
+            const refPx = refPxFor(fontPx);
+            const refGap = refGapFor(fontPx);
+
+            // Left edge of a line of width lw for a given alignment.
+            const lineX0 = (align, lw) =>
+                align === 'left' ? sidePad
+                : align === 'right' ? w - sidePad - lw
+                : w / 2 - lw / 2;
+
+            const blockH = lay.blockH;
             const centerY = (settings.top / 100) * h;
             const startY = centerY - blockH / 2 + lineHeight / 2;
-            const alignX = settings.align === 'left' ? sidePad
-                         : settings.align === 'right' ? w - sidePad
-                         : w / 2;
 
-            // widest line → backdrop bounds
-            let maxLineW = 0;
-            lines.forEach(l => { maxLineW = Math.max(maxLineW, c.measureText(l).width); });
-            const bdX = settings.align === 'left' ? sidePad
-                      : settings.align === 'right' ? w - sidePad - maxLineW
-                      : w / 2 - maxLineW / 2;
+            // backdrop bounds = union of every line AND the reference
+            let bdX0 = Infinity, bdX1 = -Infinity;
+            lines.forEach((l, i) => {
+                bdX0 = Math.min(bdX0, lineX0(settings.align, lineWs[i]));
+                bdX1 = Math.max(bdX1, lineX0(settings.align, lineWs[i]) + lineWs[i]);
+            });
+            if (refText) {
+                const ra = refOwnLine ? settings.refAlign : settings.align;
+                const rw = refOwnLine ? refW : lineWs[lines.length - 1];
+                bdX0 = Math.min(bdX0, lineX0(ra, rw));
+                bdX1 = Math.max(bdX1, lineX0(ra, rw) + rw);
+            }
+            const bdX = bdX0;
+            const bdW = bdX1 - bdX0;
             const bdY = centerY - blockH / 2;
             const padX = fontPx * 0.5, padY = fontPx * 0.45;
 
             // 3. backdrop behind text
             if (settings.backdrop === 'dim') {
                 c.save();
-                roundRectPath(c, bdX - padX, bdY - padY, maxLineW + padX * 2, blockH + padY * 2, fontPx * 0.45);
+                roundRectPath(c, bdX - padX, bdY - padY, bdW + padX * 2, blockH + padY * 2, fontPx * 0.45);
                 c.fillStyle = 'rgba(0,0,0,0.38)';
                 c.fill();
                 c.restore();
             } else if (settings.backdrop === 'blur') {
                 c.save();
-                roundRectPath(c, bdX - padX, bdY - padY, maxLineW + padX * 2, blockH + padY * 2, fontPx * 0.45);
+                roundRectPath(c, bdX - padX, bdY - padY, bdW + padX * 2, blockH + padY * 2, fontPx * 0.45);
                 c.clip();
                 if (CANVAS_FILTER_SUPPORTED) {
                     c.filter = 'blur(' + Math.round(w * 0.014) + 'px)';
@@ -1027,15 +1123,32 @@
                 c.restore();
             }
 
-            // 4. text with the chosen shadow
+            // 4. text with the chosen shadow — every run is drawn left-anchored
+            // at its computed x, so lines, the appended reference and the
+            // own-line reference all share one alignment helper (lineX0).
             c.shadowColor = settings.shadow === 'dark' ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.9)';
             c.shadowBlur = 8 * sizeUnit;
             c.shadowOffsetX = 2 * sizeUnit;
             c.shadowOffsetY = 2 * sizeUnit;
             c.fillStyle = effectiveColor();
+            c.textAlign = 'left';
+            c.textBaseline = 'middle';
             lines.forEach((lineText, i) => {
-                c.fillText(lineText, alignX, startY + (i * lineHeight));
+                c.fillText(lineText, lineX0(settings.align, lineWs[i]), startY + (i * lineHeight));
             });
+            if (refText) {
+                c.font = 'italic ' + refPx + 'px "' + settings.font + '"';
+                if (refOwnLine) {
+                    // snug on its own row below the passage
+                    const refY = startY + (lines.length - 1) * lineHeight + (lineHeight + refLineH(fontPx)) / 2;
+                    c.fillText(refText, lineX0(settings.refAlign, refW), refY);
+                } else {
+                    // appended after the last passage line, same baseline
+                    const lastLw = lineWs[lines.length - 1] - refGap - refW;   // original text width
+                    const refX = lineX0(settings.align, lineWs[lines.length - 1]) + lastLw + refGap;
+                    c.fillText(refText, refX, startY + (lines.length - 1) * lineHeight);
+                }
+            }
             c.shadowColor = 'transparent';
             c.shadowBlur = 0;
         }
@@ -1135,24 +1248,6 @@
         });
 
         // ── Typography controls ───────────────────────────────────────
-        // Quick Looks: one tap sets the whole typographic look
-        const PRESETS = {
-            clean:       { font: 'Lato',            fontSize: 40, align: 'center', top: 50 },
-            elegant:     { font: 'Playfair Display', fontSize: 44, align: 'center', top: 62 },
-            handwriting: { font: 'Caveat',          fontSize: 58, align: 'center', top: 32 },
-            modern:      { font: 'Montserrat',      fontSize: 36, align: 'left',   top: 50 }
-        };
-        function applyPreset(name, element) {
-            const p = PRESETS[name];
-            if (!p) return;
-            Object.assign(settings, p);
-            persistSettings();
-            document.querySelectorAll('.preset-btn').forEach(el => el.classList.remove('active'));
-            if (element) element.classList.add('active');
-            syncTypographyUI();
-            drawCanvas();
-        }
-
         function changeFont(font, element) {
             settings.font = font;
             persistSettings();
@@ -1163,6 +1258,7 @@
             element.classList.add('active');
             element.setAttribute('aria-pressed', 'true');
             drawCanvas();
+            ensureRefFontReady();
         }
 
         function changeAlign(align, element) {
@@ -1177,13 +1273,38 @@
             drawCanvas();
         }
 
+        // Alignment of the reference WHEN it sits on its own line; while it
+        // fits next to the last line of the passage it simply follows it.
+        function changeRefAlign(align, element) {
+            settings.refAlign = align;
+            persistSettings();
+            document.querySelectorAll('.ref-align-btn').forEach(el => {
+                el.classList.remove('active');
+                el.setAttribute('aria-pressed', 'false');
+            });
+            element.classList.add('active');
+            element.setAttribute('aria-pressed', 'true');
+            drawCanvas();
+        }
+
+        // Canvas does not trigger @font-face loads by itself: the italic face
+        // used for the reference must be requested explicitly and the canvas
+        // redrawn once it arrives (Caveat has no italic — the browser
+        // synthesises the slant, which is fine).
+        function ensureRefFontReady() {
+            if (!(document.fonts && document.fonts.load)) return;
+            document.fonts.load('italic 16px "' + settings.font + '"')
+                .then(() => { if (currentImage) drawCanvas(); })
+                .catch(() => {});
+        }
+
         document.getElementById('font-size').addEventListener('input', (e) => {
             settings.fontSize = parseInt(e.target.value);
             persistSettings();
             drawCanvas();
         });
 
-        // Sync chips/slider with the settings object (used by presets AND restore)
+        // Sync chips/slider with the settings object (used on restore)
         function syncTypographyUI() {
             document.getElementById('font-size').value = settings.fontSize;
             document.querySelectorAll('.font-option').forEach(el => {
@@ -1193,6 +1314,11 @@
             });
             document.querySelectorAll('.align-btn').forEach(el => {
                 const on = el.getAttribute('data-align') === settings.align;
+                el.classList.toggle('active', on);
+                el.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            document.querySelectorAll('.ref-align-btn').forEach(el => {
+                const on = el.getAttribute('data-ref-align') === settings.refAlign;
                 el.classList.toggle('active', on);
                 el.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
@@ -1412,6 +1538,9 @@
             });
             gotoStep(1);
             loadDailyQuote();
+            // Canvas does not load @font-face faces on its own — request the
+            // italic reference face explicitly, then redraw when it arrives.
+            ensureRefFontReady();
             // Canvas fonts may finish loading after the first draw
             if (document.fonts && document.fonts.ready) {
                 document.fonts.ready.then(() => { if (currentImage) drawCanvas(); });
