@@ -1,0 +1,470 @@
+{
+ "type": "bible-reader",
+ "translation": "BSB",
+ "translationName": "Berean Standard Bible",
+ "attribution": "Berean Standard Bible (BSB) - public domain; produced in cooperation with Bible Hub, Discovery Bible, OpenBible.com and the Berean Bible Translation Committee. Source texts via bolls.life.",
+ "books": [
+  {
+   "code": "GEN",
+   "name": "Genesis",
+   "chapters": 50,
+   "testament": "OT",
+   "file": "gen.json"
+  },
+  {
+   "code": "EXO",
+   "name": "Exodus",
+   "chapters": 40,
+   "testament": "OT",
+   "file": "exo.json"
+  },
+  {
+   "code": "LEV",
+   "name": "Leviticus",
+   "chapters": 27,
+   "testament": "OT",
+   "file": "lev.json"
+  },
+  {
+   "code": "NUM",
+   "name": "Numbers",
+   "chapters": 36,
+   "testament": "OT",
+   "file": "num.json"
+  },
+  {
+   "code": "DEU",
+   "name": "Deuteronomy",
+   "chapters": 34,
+   "testament": "OT",
+   "file": "deu.json"
+  },
+  {
+   "code": "JOS",
+   "name": "Joshua",
+   "chapters": 24,
+   "testament": "OT",
+   "file": "jos.json"
+  },
+  {
+   "code": "JDG",
+   "name": "Judges",
+   "chapters": 21,
+   "testament": "OT",
+   "file": "jdg.json"
+  },
+  {
+   "code": "RUT",
+   "name": "Ruth",
+   "chapters": 4,
+   "testament": "OT",
+   "file": "rut.json"
+  },
+  {
+   "code": "1SA",
+   "name": "1 Samuel",
+   "chapters": 31,
+   "testament": "OT",
+   "file": "1sa.json"
+  },
+  {
+   "code": "2SA",
+   "name": "2 Samuel",
+   "chapters": 24,
+   "testament": "OT",
+   "file": "2sa.json"
+  },
+  {
+   "code": "1KI",
+   "name": "1 Kings",
+   "chapters": 22,
+   "testament": "OT",
+   "file": "1ki.json"
+  },
+  {
+   "code": "2KI",
+   "name": "2 Kings",
+   "chapters": 25,
+   "testament": "OT",
+   "file": "2ki.json"
+  },
+  {
+   "code": "1CH",
+   "name": "1 Chronicles",
+   "chapters": 29,
+   "testament": "OT",
+   "file": "1ch.json"
+  },
+  {
+   "code": "2CH",
+   "name": "2 Chronicles",
+   "chapters": 36,
+   "testament": "OT",
+   "file": "2ch.json"
+  },
+  {
+   "code": "EZR",
+   "name": "Ezra",
+   "chapters": 10,
+   "testament": "OT",
+   "file": "ezr.json"
+  },
+  {
+   "code": "NEH",
+   "name": "Nehemiah",
+   "chapters": 13,
+   "testament": "OT",
+   "file": "neh.json"
+  },
+  {
+   "code": "EST",
+   "name": "Esther",
+   "chapters": 10,
+   "testament": "OT",
+   "file": "est.json"
+  },
+  {
+   "code": "JOB",
+   "name": "Job",
+   "chapters": 42,
+   "testament": "OT",
+   "file": "job.json"
+  },
+  {
+   "code": "PSA",
+   "name": "Psalm",
+   "chapters": 150,
+   "testament": "OT",
+   "file": "psa.json"
+  },
+  {
+   "code": "PRO",
+   "name": "Proverbs",
+   "chapters": 31,
+   "testament": "OT",
+   "file": "pro.json"
+  },
+  {
+   "code": "ECC",
+   "name": "Ecclesiastes",
+   "chapters": 12,
+   "testament": "OT",
+   "file": "ecc.json"
+  },
+  {
+   "code": "SNG",
+   "name": "Song of Solomon",
+   "chapters": 8,
+   "testament": "OT",
+   "file": "sng.json"
+  },
+  {
+   "code": "ISA",
+   "name": "Isaiah",
+   "chapters": 66,
+   "testament": "OT",
+   "file": "isa.json"
+  },
+  {
+   "code": "JER",
+   "name": "Jeremiah",
+   "chapters": 52,
+   "testament": "OT",
+   "file": "jer.json"
+  },
+  {
+   "code": "LAM",
+   "name": "Lamentations",
+   "chapters": 5,
+   "testament": "OT",
+   "file": "lam.json"
+  },
+  {
+   "code": "EZK",
+   "name": "Ezekiel",
+   "chapters": 48,
+   "testament": "OT",
+   "file": "ezk.json"
+  },
+  {
+   "code": "DAN",
+   "name": "Daniel",
+   "chapters": 12,
+   "testament": "OT",
+   "file": "dan.json"
+  },
+  {
+   "code": "HOS",
+   "name": "Hosea",
+   "chapters": 14,
+   "testament": "OT",
+   "file": "hos.json"
+  },
+  {
+   "code": "JOL",
+   "name": "Joel",
+   "chapters": 3,
+   "testament": "OT",
+   "file": "jol.json"
+  },
+  {
+   "code": "AMO",
+   "name": "Amos",
+   "chapters": 9,
+   "testament": "OT",
+   "file": "amo.json"
+  },
+  {
+   "code": "OBA",
+   "name": "Obadiah",
+   "chapters": 1,
+   "testament": "OT",
+   "file": "oba.json"
+  },
+  {
+   "code": "JON",
+   "name": "Jonah",
+   "chapters": 4,
+   "testament": "OT",
+   "file": "jon.json"
+  },
+  {
+   "code": "MIC",
+   "name": "Micah",
+   "chapters": 7,
+   "testament": "OT",
+   "file": "mic.json"
+  },
+  {
+   "code": "NAM",
+   "name": "Nahum",
+   "chapters": 3,
+   "testament": "OT",
+   "file": "nam.json"
+  },
+  {
+   "code": "HAB",
+   "name": "Habakkuk",
+   "chapters": 3,
+   "testament": "OT",
+   "file": "hab.json"
+  },
+  {
+   "code": "ZEP",
+   "name": "Zephaniah",
+   "chapters": 3,
+   "testament": "OT",
+   "file": "zep.json"
+  },
+  {
+   "code": "HAG",
+   "name": "Haggai",
+   "chapters": 2,
+   "testament": "OT",
+   "file": "hag.json"
+  },
+  {
+   "code": "ZEC",
+   "name": "Zechariah",
+   "chapters": 14,
+   "testament": "OT",
+   "file": "zec.json"
+  },
+  {
+   "code": "MAL",
+   "name": "Malachi",
+   "chapters": 4,
+   "testament": "OT",
+   "file": "mal.json"
+  },
+  {
+   "code": "MAT",
+   "name": "Matthew",
+   "chapters": 28,
+   "testament": "NT",
+   "file": "mat.json"
+  },
+  {
+   "code": "MRK",
+   "name": "Mark",
+   "chapters": 16,
+   "testament": "NT",
+   "file": "mrk.json"
+  },
+  {
+   "code": "LUK",
+   "name": "Luke",
+   "chapters": 24,
+   "testament": "NT",
+   "file": "luk.json"
+  },
+  {
+   "code": "JHN",
+   "name": "John",
+   "chapters": 21,
+   "testament": "NT",
+   "file": "jhn.json"
+  },
+  {
+   "code": "ACT",
+   "name": "Acts",
+   "chapters": 28,
+   "testament": "NT",
+   "file": "act.json"
+  },
+  {
+   "code": "ROM",
+   "name": "Romans",
+   "chapters": 16,
+   "testament": "NT",
+   "file": "rom.json"
+  },
+  {
+   "code": "1CO",
+   "name": "1 Corinthians",
+   "chapters": 16,
+   "testament": "NT",
+   "file": "1co.json"
+  },
+  {
+   "code": "2CO",
+   "name": "2 Corinthians",
+   "chapters": 13,
+   "testament": "NT",
+   "file": "2co.json"
+  },
+  {
+   "code": "GAL",
+   "name": "Galatians",
+   "chapters": 6,
+   "testament": "NT",
+   "file": "gal.json"
+  },
+  {
+   "code": "EPH",
+   "name": "Ephesians",
+   "chapters": 6,
+   "testament": "NT",
+   "file": "eph.json"
+  },
+  {
+   "code": "PHP",
+   "name": "Philippians",
+   "chapters": 4,
+   "testament": "NT",
+   "file": "php.json"
+  },
+  {
+   "code": "COL",
+   "name": "Colossians",
+   "chapters": 4,
+   "testament": "NT",
+   "file": "col.json"
+  },
+  {
+   "code": "1TH",
+   "name": "1 Thessalonians",
+   "chapters": 5,
+   "testament": "NT",
+   "file": "1th.json"
+  },
+  {
+   "code": "2TH",
+   "name": "2 Thessalonians",
+   "chapters": 3,
+   "testament": "NT",
+   "file": "2th.json"
+  },
+  {
+   "code": "1TI",
+   "name": "1 Timothy",
+   "chapters": 6,
+   "testament": "NT",
+   "file": "1ti.json"
+  },
+  {
+   "code": "2TI",
+   "name": "2 Timothy",
+   "chapters": 4,
+   "testament": "NT",
+   "file": "2ti.json"
+  },
+  {
+   "code": "TIT",
+   "name": "Titus",
+   "chapters": 3,
+   "testament": "NT",
+   "file": "tit.json"
+  },
+  {
+   "code": "PHM",
+   "name": "Philemon",
+   "chapters": 1,
+   "testament": "NT",
+   "file": "phm.json"
+  },
+  {
+   "code": "HEB",
+   "name": "Hebrews",
+   "chapters": 13,
+   "testament": "NT",
+   "file": "heb.json"
+  },
+  {
+   "code": "JAS",
+   "name": "James",
+   "chapters": 5,
+   "testament": "NT",
+   "file": "jas.json"
+  },
+  {
+   "code": "1PE",
+   "name": "1 Peter",
+   "chapters": 5,
+   "testament": "NT",
+   "file": "1pe.json"
+  },
+  {
+   "code": "2PE",
+   "name": "2 Peter",
+   "chapters": 3,
+   "testament": "NT",
+   "file": "2pe.json"
+  },
+  {
+   "code": "1JN",
+   "name": "1 John",
+   "chapters": 5,
+   "testament": "NT",
+   "file": "1jn.json"
+  },
+  {
+   "code": "2JN",
+   "name": "2 John",
+   "chapters": 1,
+   "testament": "NT",
+   "file": "2jn.json"
+  },
+  {
+   "code": "3JN",
+   "name": "3 John",
+   "chapters": 1,
+   "testament": "NT",
+   "file": "3jn.json"
+  },
+  {
+   "code": "JUD",
+   "name": "Jude",
+   "chapters": 1,
+   "testament": "NT",
+   "file": "jud.json"
+  },
+  {
+   "code": "REV",
+   "name": "Revelation",
+   "chapters": 22,
+   "testament": "NT",
+   "file": "rev.json"
+  }
+ ]
+}

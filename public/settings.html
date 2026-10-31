@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=17">
+    <link rel="stylesheet" href="css/style.css?v=22">
 </head>
 <body data-page="settings">
 
@@ -50,7 +50,25 @@
 
         <main>
             <h2 style="margin-top:0; font-size: 1.4rem; color: var(--ink); font-family: var(--font-display); font-weight: 400; text-transform: uppercase;" data-i18n="settings">Settings</h2>
-            
+
+            <!-- Saved passages (favorites + notes): moved here from the bottom
+                 navigation when the Bible tab arrived. The page itself still
+                 lives at /saved so existing bookmarks and PWA shortcuts work. -->
+            <div class="card">
+                <div class="setting-item" style="border-bottom: none;">
+                    <span class="setting-label">
+                        <span class="material-icons-round" aria-hidden="true" style="vertical-align:-5px; margin-right:6px; color: var(--green-text);">bookmark</span>
+                        <span data-i18n="saved_link">Saved Passages</span>
+                    </span>
+                    <div class="setting-control">
+                        <a href="saved" class="btn btn-primary" style="text-decoration: none;">
+                            <span data-i18n="nav_saved">Saved</span>
+                        </a>
+                    </div>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: right; margin-top: -6px;" data-i18n="saved_link_desc">Your favorites and notes</div>
+            </div>
+
             <div id="install-pwa-btn" class="card" style="display: none; align-items: center; justify-content: space-between; border-color: var(--green); padding: 20px;">
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <span class="material-icons-round" aria-hidden="true" style="color: var(--accent-color); font-size: 32px;">download_for_offline</span>
@@ -117,9 +135,9 @@
                 <span class="nav-quote-icon" aria-hidden="true">❞</span>
                 <span data-i18n="nav_today">Home</span>
             </a>
-            <a href="saved" class="nav-item">
-                <span class="material-icons-round" aria-hidden="true">bookmark</span>
-                <span data-i18n="nav_saved">Saved</span>
+            <a href="bible" class="nav-item">
+                <span class="material-icons-round" aria-hidden="true">menu_book</span>
+                <span data-i18n="nav_bible">Bible</span>
             </a>
             <a href="settings" class="nav-item active">
                 <span class="material-icons-round" aria-hidden="true">settings</span>
@@ -134,7 +152,7 @@
         <span id="toast-message">Message</span>
     </div>
 
-    <script src="js/app.js?v=17"></script>
+    <script src="js/app.js?v=22"></script>
     <script>
         // Initialize settings page
         document.addEventListener('DOMContentLoaded', () => {

@@ -1,13 +1,15 @@
-const CACHE_NAME = 'credo-v18';
+const CACHE_NAME = 'credo-v22';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './bible.html',
   './saved.html',
   './settings.html',
   './wallpaper.html',
   './css/style.css',
   './fonts/ArchivoBlack-Regular.ttf',
   './js/app.js',
+  './js/bible.js',
   './manifest.json',
   './data/bsb.bible.json',
   './data/calendar.json',
@@ -18,6 +20,11 @@ const ASSETS_TO_CACHE = [
   'https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap',
   'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Caveat:wght@400;700&family=Montserrat:wght@400;600&family=Merriweather:wght@300;400;700&family=Dancing+Script:wght@400;700&display=swap'
 ];
+// NOTE: data/bsb-full/ (the whole-Bible reader data, ~4 MB) is deliberately
+// NOT in this list and is NEVER runtime-cached either (see the fetch handler
+// below). Bible reading is ONLINE-ONLY by design; bible.html shows its own
+// offline screen when the fetch fails. The daily passage, favorites and
+// notes DO work offline (data/bsb.bible.json + data/calendar.json are cached).
 
 // ---------------------------------------------------------------------------
 // Pomožna funkcija: "očisti" preusmerjen odgovor
@@ -92,6 +99,13 @@ self.addEventListener('fetch', (event) => {
   // Preskoči zahteve, ki jih SW ne sme obravnavati (npr. chrome-extension://)
   const url = new URL(request.url);
   if (!url.protocol.startsWith('http')) return;
+
+  // ── Bible reader data: NETWORK-ONLY, never cached ─────────────────────
+  // Reading the whole Bible is online-only by design (see ASSETS_TO_CACHE
+  // note above). Bypassing the SW keeps ~4 MB of book files out of the
+  // offline cache; an offline fetch fails and bible.html shows its
+  // dedicated offline screen instead.
+  if (url.pathname.includes('/data/bsb-full/')) return;
 
   event.respondWith((async () => {
     // 1. Poskusi iz predpomnilnika

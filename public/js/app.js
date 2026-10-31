@@ -19,6 +19,259 @@ let itemToDelete = null;
 let currentSavedTab = 'fav';
 let searchQuery = "";
 
+// ═══════════════════════════════════════════════════════════════════════════
+// BIBLE BOOKS (canonical order) + verse-reference utilities
+// ═══════════════════════════════════════════════════════════════════════════
+// Shared by: the "Read full chapter" button on Home, the Bible reader
+// (bible.html + js/bible.js) and the storage migration below.
+// `code` is the canonical storage key prefix — verse keys look like
+// "LUK.2.16" (BOOKCODE.CHAPTER.VERSE) and are STABLE FOREVER: they are used
+// as localStorage keys for favorites and notes. Never rename a code.
+const BIBLE_BOOKS = [
+    {code:'GEN', name:'Genesis', chapters:50}, {code:'EXO', name:'Exodus', chapters:40},
+    {code:'LEV', name:'Leviticus', chapters:27}, {code:'NUM', name:'Numbers', chapters:36},
+    {code:'DEU', name:'Deuteronomy', chapters:34}, {code:'JOS', name:'Joshua', chapters:24},
+    {code:'JDG', name:'Judges', chapters:21}, {code:'RUT', name:'Ruth', chapters:4},
+    {code:'1SA', name:'1 Samuel', chapters:31}, {code:'2SA', name:'2 Samuel', chapters:24},
+    {code:'1KI', name:'1 Kings', chapters:22}, {code:'2KI', name:'2 Kings', chapters:25},
+    {code:'1CH', name:'1 Chronicles', chapters:29}, {code:'2CH', name:'2 Chronicles', chapters:36},
+    {code:'EZR', name:'Ezra', chapters:10}, {code:'NEH', name:'Nehemiah', chapters:13},
+    {code:'EST', name:'Esther', chapters:10}, {code:'JOB', name:'Job', chapters:42},
+    {code:'PSA', name:'Psalm', chapters:150}, {code:'PRO', name:'Proverbs', chapters:31},
+    {code:'ECC', name:'Ecclesiastes', chapters:12}, {code:'SNG', name:'Song of Solomon', chapters:8},
+    {code:'ISA', name:'Isaiah', chapters:66}, {code:'JER', name:'Jeremiah', chapters:52},
+    {code:'LAM', name:'Lamentations', chapters:5}, {code:'EZK', name:'Ezekiel', chapters:48},
+    {code:'DAN', name:'Daniel', chapters:12}, {code:'HOS', name:'Hosea', chapters:14},
+    {code:'JOL', name:'Joel', chapters:3}, {code:'AMO', name:'Amos', chapters:9},
+    {code:'OBA', name:'Obadiah', chapters:1}, {code:'JON', name:'Jonah', chapters:4},
+    {code:'MIC', name:'Micah', chapters:7}, {code:'NAM', name:'Nahum', chapters:3},
+    {code:'HAB', name:'Habakkuk', chapters:3}, {code:'ZEP', name:'Zephaniah', chapters:3},
+    {code:'HAG', name:'Haggai', chapters:2}, {code:'ZEC', name:'Zechariah', chapters:14},
+    {code:'MAL', name:'Malachi', chapters:4},
+    {code:'MAT', name:'Matthew', chapters:28}, {code:'MRK', name:'Mark', chapters:16},
+    {code:'LUK', name:'Luke', chapters:24}, {code:'JHN', name:'John', chapters:21},
+    {code:'ACT', name:'Acts', chapters:28}, {code:'ROM', name:'Romans', chapters:16},
+    {code:'1CO', name:'1 Corinthians', chapters:16}, {code:'2CO', name:'2 Corinthians', chapters:13},
+    {code:'GAL', name:'Galatians', chapters:6}, {code:'EPH', name:'Ephesians', chapters:6},
+    {code:'PHP', name:'Philippians', chapters:4}, {code:'COL', name:'Colossians', chapters:4},
+    {code:'1TH', name:'1 Thessalonians', chapters:5}, {code:'2TH', name:'2 Thessalonians', chapters:3},
+    {code:'1TI', name:'1 Timothy', chapters:6}, {code:'2TI', name:'2 Timothy', chapters:4},
+    {code:'TIT', name:'Titus', chapters:3}, {code:'PHM', name:'Philemon', chapters:1},
+    {code:'HEB', name:'Hebrews', chapters:13}, {code:'JAS', name:'James', chapters:5},
+    {code:'1PE', name:'1 Peter', chapters:5}, {code:'2PE', name:'2 Peter', chapters:3},
+    {code:'1JN', name:'1 John', chapters:5}, {code:'2JN', name:'2 John', chapters:1},
+    {code:'3JN', name:'3 John', chapters:1}, {code:'JUD', name:'Jude', chapters:1},
+    {code:'REV', name:'Revelation', chapters:22}
+];
+
+// "Luke 2:16" / "John 9:35-38" / "1 Samuel 2:3" →
+//   { code:'LUK', chapter:2, verse:16, endVerse:null, key:'LUK.2.16', label:'Luke 2:16' }
+// Range refs anchor to their FIRST verse (key uses verse, label keeps the range).
+// Returns null when the label cannot be parsed.
+function parseRefLabel(label) {
+    if (!label || typeof label !== 'string') return null;
+    const m = /^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/.exec(label.trim());
+    if (!m) return null;
+    const name = m[1].trim();
+    const book = BIBLE_BOOKS.find(b => b.name.toLowerCase() === name.toLowerCase());
+    if (!book) return null;
+    const chapter = parseInt(m[2], 10), verse = parseInt(m[3], 10);
+    const endVerse = m[4] ? parseInt(m[4], 10) : null;
+    if (!Number.isFinite(chapter) || !Number.isFinite(verse)) return null;
+    return {
+        code: book.code, chapter, verse, endVerse,
+        key: book.code + '.' + chapter + '.' + verse,
+        label: label.trim()
+    };
+}
+
+// "LUK.2.16" → "Luke 2:16" (or null for unknown codes).
+// The verse part may also be a COMPRESSED LIST of the current selection —
+// "LUK.14.9-12" → "Luke 14:9-12", "LUK.14.9,12" → "Luke 14:9,12",
+// "LUK.14.9-11,14" → "Luke 14:9-11,14" (multi-verse notes & share links).
+// Single-verse keys keep their original shape, so pre-existing labels and
+// links are unaffected (user-data compatibility).
+function refLabelFromKey(key) {
+    const m = /^([A-Z0-9]{2,4})\.(\d+)\.([\d,\-]+)$/.exec(key || '');
+    if (!m) return null;
+    const book = BIBLE_BOOKS.find(b => b.code === m[1]);
+    if (!book) return null;
+    return book.name + ' ' + m[2] + ':' + m[3];
+}
+
+function splitVerseKey(key) {
+    const m = /^([A-Z0-9]{2,4})\.(\d+)\.(\d+)$/.exec(key || '');
+    if (!m) return null;
+    return { code: m[1], chapter: parseInt(m[2], 10), verse: parseInt(m[3], 10) };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STORAGE SCHEMA v2 — favorites & notes are keyed to Bible VERSE REFERENCES
+// ═══════════════════════════════════════════════════════════════════════════
+// HISTORY OF THE FORMAT (KEEP THIS COMMENT — it documents user-data
+// compatibility for anyone touching localStorage in the future):
+//
+//   v1 (original release):
+//     favorites        = JSON array of NUMERIC passage ids (ids of the 331
+//                        curated passages in data/bsb.bible.json, shared with
+//                        data/calendar.json)
+//     note_<id>        = plain string (the user's thought)
+//
+//   v2 (Bible reader release, since the full-Bible tab):
+//     favorites        = JSON array of objects
+//                        { ref:'LUK.2.16', label:'Luke 2:16', text:'<verse text>' }
+//                        — can point at ANY verse of the 66 books
+//     note_LUK.2.16    = JSON { note:'<user thought>', verse:'<verse text>', label:'Luke 2:16' }
+//                        — since the multi-verse note support the note key can
+//                        also cover a whole SELECTION, using the same compressed
+//                        verse list as the share links:
+//                        note_LUK.14.9-12 (contiguous) / note_LUK.14.9,12
+//                        (scattered) / note_LUK.14.9-11,14 (mixed).
+//                        COMPATIBILITY: single-verse keys keep their exact
+//                        old shape — old notes migrate and render unchanged,
+//                        and refLabelFromKey() understands both forms.
+//                        (the verse text is stored together with the note so
+//                        the Saved page works fully OFFLINE)
+//
+// MIGRATION v1 → v2 (automatic, one-shot, on the user's next visit):
+//   1. Requires the curated pool (data/bsb.bible.json) — it is the ONLY
+//      id→ref map that exists. If that fetch fails (e.g. offline), migration
+//      is SKIPPED and v1 data is left untouched; the app keeps working in
+//      legacy mode and migration is retried on a later visit.
+//   2. BEFORE converting, the raw v1 values are copied to:
+//        localStorage['favorites_legacy_backup']  (raw JSON array of ids)
+//        localStorage['notes_legacy_backup']      (object {id: noteText})
+//      These backups are tiny and are kept FOREVER as a rollback safety net.
+//      DO NOT DELETE the backup logic or the backup keys.
+//   3. Every numeric id is resolved to its passage ref ("Luke 2:16") → verse
+//      key ("LUK.2.16"). Range refs ("John 9:35-38") anchor to the FIRST
+//      verse. Unresolvable ids are dropped from favorites but stay in the
+//      legacy backup (should never happen — ids come from the same pool).
+//   4. Only after a fully successful conversion is
+//        localStorage['schema_version'] = '2'
+//      written — migration then never runs again.
+//   5. Backup import (.credo) accepts BOTH formats and normalizes to v2
+//      (see importBackup below).
+//
+// REMINDER FOR FUTURE CHANGES: if you ever introduce schema v3, you must
+// migrate v2 the same way (one-shot, backup first, marker key last).
+let storageV2 = false;
+let _migratePromise = null;
+
+function ensureMigrated() {
+    if (localStorage.getItem('schema_version') === '2') {
+        storageV2 = true;
+        return Promise.resolve();
+    }
+    if (_migratePromise) return _migratePromise;
+    _migratePromise = (async () => {
+        try {
+            await loadQuotes();
+            if (!poolLoadedOk) {
+                // Pool unavailable (offline?) — skip, retry on a later visit.
+                console.warn('[storage-migration] passage pool unavailable — keeping v1 data, will retry next visit.');
+                return;
+            }
+
+            // --- 1. Snapshot the raw v1 state (rollback safety net) ---
+            const rawFav = localStorage.getItem('favorites');
+            const rawNotes = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = String(localStorage.key(i));
+                const m = /^note_(\d+)$/.exec(k);
+                if (m) rawNotes[m[1]] = localStorage.getItem(k);
+            }
+            try {
+                localStorage.setItem('favorites_legacy_backup', rawFav || '[]');
+                localStorage.setItem('notes_legacy_backup', JSON.stringify(rawNotes));
+            } catch (e) {
+                console.error('[storage-migration] could not write legacy backups — aborting migration (v1 data untouched).', e);
+                return;
+            }
+
+            // --- 2. Convert favorites: id → {ref, label, text} ---
+            // (also tolerates v2-shaped entries if any are already present)
+            const seen = new Set();
+            const favs = [];
+            (JSON.parse(rawFav || '[]') || []).forEach(item => {
+                let entry = null;
+                if (item && typeof item === 'object' && item.ref) {
+                    entry = item;                                   // already v2
+                } else {
+                    const id = parseInt(item, 10);
+                    if (!Number.isFinite(id)) return;
+                    entry = favEntryFromId(id);
+                    if (!entry) {
+                        console.warn('[storage-migration] favorite id ' + id + ' could not be resolved — kept in favorites_legacy_backup only.');
+                        return;
+                    }
+                }
+                if (!seen.has(entry.ref)) { seen.add(entry.ref); favs.push(entry); }
+            });
+            localStorage.setItem('favorites', JSON.stringify(favs));
+
+            // --- 3. Convert notes: note_<id> (plain string) → note_<REF> (JSON) ---
+            Object.keys(rawNotes).forEach(id => {
+                const q = currentQuotes.find(p => p.id === parseInt(id, 10));
+                const noteText = rawNotes[id];
+                if (!q || !noteText || !noteText.trim()) return;   // leave old key in place
+                const pr = parseRefLabel(q.author);
+                if (!pr) return;
+                localStorage.setItem('note_' + pr.key, JSON.stringify({
+                    note: noteText,
+                    verse: q.text,
+                    label: pr.label
+                }));
+                localStorage.removeItem('note_' + id);             // converted → remove legacy key
+            });
+
+            // --- 4. Mark done (always LAST) ---
+            localStorage.setItem('schema_version', '2');
+            storageV2 = true;
+            console.log('[storage-migration] v1 → v2 complete:', favs.length, 'favorites converted.');
+        } catch (err) {
+            console.error('[storage-migration] failed — v1 data kept, will retry next visit.', err);
+            // _migratePromise is reset so a later call can retry within this visit too
+            _migratePromise = null;
+        }
+    })();
+    return _migratePromise;
+}
+
+// Numeric passage id → v2 favorite entry (needs the loaded pool)
+function favEntryFromId(id) {
+    const q = currentQuotes.find(p => p.id === id);
+    if (!q) return null;
+    const pr = parseRefLabel(q.author);
+    if (!pr) return null;
+    return { ref: pr.key, label: pr.label, text: q.text };
+}
+
+// READ favorites — always returns v2-shaped entries regardless of what is on
+// disk (legacy ids are converted on the fly when the pool is available).
+function getFavorites() {
+    let raw = [];
+    try { raw = JSON.parse(localStorage.getItem('favorites') || '[]') || []; } catch (e) { raw = []; }
+    const seen = new Set();
+    const out = [];
+    raw.forEach(item => {
+        let entry = null;
+        if (item && typeof item === 'object' && item.ref) {
+            entry = item;
+        } else {
+            const id = parseInt(item, 10);
+            if (Number.isFinite(id)) entry = favEntryFromId(id);
+        }
+        if (entry && entry.ref && !seen.has(entry.ref)) { seen.add(entry.ref); out.push(entry); }
+    });
+    return out;
+}
+
+function isFavoriteRef(key) {
+    return getFavorites().some(f => f.ref === key);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // === LONG PRESS ===
 let longPressTimer;
 let isLongPress = false;
@@ -27,7 +280,7 @@ const LONG_PRESS_DURATION = 500;
 // === TRANSLATIONS ===
 const translations = {
     en: {
-        nav_today: "Home", nav_saved: "Saved", nav_settings: "Settings",
+        nav_today: "Home", nav_bible: "Bible", nav_saved: "Saved", nav_settings: "Settings",
         favorites: "Favorites", notes: "Notes",
         no_fav: "No saved passages.", no_notes: "No thoughts written.",
         settings: "Settings", font_size: "Font Size", language: "Language",
@@ -52,7 +305,19 @@ const translations = {
         image_creating: "Creating image...", image_saved: "Image saved (9:16)", image_failed: "Could not create the image.",
         quote_data_error: "Passage file could not be read – showing built-in passages only. Please check the JSON file.",
         invalid_backup: "Invalid backup file.",
-        aria_search: "Search passages and notes", aria_note: "Your thoughts about the passage"
+        aria_search: "Search passages and notes", aria_note: "Your thoughts about the passage",
+        read_full_chapter: "Read full chapter",
+        bible_title: "The Bible",
+        bible_offline_title: "You're offline",
+        bible_offline_text: "Reading the whole Bible needs an internet connection. Your daily passage, favorites and notes still work offline.",
+        bible_retry: "Try again",
+        bible_online_only: "Bible reading works online only",
+        old_testament: "Old Testament", new_testament: "New Testament",
+        all_books: "All books", select_chapter: "Select a chapter",
+        prev_chapter: "Previous", next_chapter: "Next",
+        continue_reading: "Continue reading",
+        loading_chapter: "Loading chapter...",
+        saved_link: "Saved Passages", saved_link_desc: "Your favorites and notes"
     }
 };
 
@@ -64,6 +329,10 @@ const translations = {
 // the deterministic date-hash selection below.
 let liturgicalDays = null;
 let calendarWrapYear = 2026;
+// True only when the curated pool (data/bsb.bible.json) loaded from the
+// network/file successfully. The v1→v2 storage migration REQUIRES it (it is
+// the only id→ref map) — see the STORAGE SCHEMA v2 comment block above.
+let poolLoadedOk = false;
 async function loadCalendar() {
     if (liturgicalDays) return;
     try {
@@ -92,6 +361,7 @@ async function loadQuotes() {
         const data = await response.json();
         const translationName = (data && data.translationName) || 'Berean Standard Bible';
         currentQuotes = data.passages || [];
+        poolLoadedOk = currentQuotes.length > 0;
 
         // Basic migration if needed (ensuring all have 'text' and 'author');
         // preserves enrichment fields: category, tags, source, source_type, year
@@ -114,6 +384,7 @@ async function loadQuotes() {
             `(usually a missing comma or an unescaped " inside a value). The app is now showing built-in fallback quotes:`, error);
         // Fallback to hardcoded quotes
         currentQuotes = fallbackQuotes.slice();
+        poolLoadedOk = false;
         showToast(t('quote_data_error'));
         return currentQuotes;
     }
@@ -121,12 +392,16 @@ async function loadQuotes() {
 
 // === LONG PRESS HANDLERS ===
 function handleTouchStart(e, id, type) {
-    if (e.currentTarget.classList.contains('editing-mode')) return;
+    // Capture the element NOW: e.currentTarget is only valid during event
+    // dispatch — 500 ms later (inside the timeout) it is already null, and
+    // showActionMenu(null, …) would throw and silently kill the menu.
+    const target = e.currentTarget;
+    if (target.classList.contains('editing-mode')) return;
     isLongPress = false;
-    
+
     longPressTimer = setTimeout(() => {
         isLongPress = true;
-        showActionMenu(e.currentTarget, id, type);
+        showActionMenu(target, id, type);
     }, LONG_PRESS_DURATION);
 }
 
@@ -146,9 +421,11 @@ function handleTouchMove() {
     clearTimeout(longPressTimer);
 }
 
-function showActionMenu(itemElement, id, type) {
-    id = parseInt(id, 10);               // ids are numbers — guard the inline templates
-    if (!Number.isFinite(id)) return;
+function showActionMenu(itemElement, refKey, type) {
+    // refKey is a verse reference key ("LUK.2.16") — or a compressed
+    // multi-verse selection ("LUK.14.9-12" / "LUK.14.9,12") — since the
+    // storage v2 refactor; favorites and notes are keyed to verses.
+    if (!refKey || typeof refKey !== 'string' || !/^[A-Z0-9]{2,4}\.\d+\.[\d,\-]+$/.test(refKey)) return;
     itemElement.classList.add('long-press-active');
     
     const actionRow = document.createElement('div');
@@ -156,16 +433,16 @@ function showActionMenu(itemElement, id, type) {
     
     if (type === 'fav') {
         actionRow.innerHTML = `
-            <button class="btn btn-danger" style="padding: 8px 16px; font-size: 0.8rem;" onclick="confirmDeleteDirect('fav', ${id}, this)">
+            <button class="btn btn-danger" style="padding: 8px 16px; font-size: 0.8rem;" onclick="confirmDeleteDirect('fav', '${refKey}', this)">
                 ${t('delete_yes')}
             </button>
         `;
     } else {
         actionRow.innerHTML = `
-            <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem;" onclick="editNoteDirect(${id}, this)">
+            <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem;" onclick="editNoteDirect('${refKey}', this)">
                 ${t('my_thoughts')}
             </button>
-            <button class="btn btn-danger" style="padding: 8px 16px; font-size: 0.8rem;" onclick="confirmDeleteDirect('note', ${id}, this)">
+            <button class="btn btn-danger" style="padding: 8px 16px; font-size: 0.8rem;" onclick="confirmDeleteDirect('note', '${refKey}', this)">
                 ${t('delete_yes')}
             </button>
         `;
@@ -175,7 +452,7 @@ function showActionMenu(itemElement, id, type) {
     itemElement.classList.add('editing-mode');
 }
 
-function confirmDeleteDirect(type, id, btnElement) {
+function confirmDeleteDirect(type, refKey, btnElement) {
     const actionRow = btnElement.parentElement;
     const itemElement = actionRow.parentElement;
     
@@ -183,22 +460,22 @@ function confirmDeleteDirect(type, id, btnElement) {
     actionRow.remove();
 
     if (type === 'fav') {
-        toggleFavorite(id);
+        toggleFavoriteRef(refKey);
     } else if (type === 'note') {
-        localStorage.removeItem(`note_${id}`);
+        localStorage.removeItem('note_' + refKey);
         showToast(t('removed_note'));
         renderSaved();
     }
 }
 
-function editNoteDirect(id, btnElement) {
+function editNoteDirect(refKey, btnElement) {
     const actionRow = btnElement.parentElement;
     const itemElement = actionRow.parentElement;
     
     itemElement.classList.remove('long-press-active', 'editing-mode');
     actionRow.remove();
     
-    openNotesModalForEdit(id);
+    openNotesModalForEdit(refKey);
 }
 
 // === SETTINGS ===
@@ -270,6 +547,7 @@ function updateTexts() {
     const page = document.body.getAttribute('data-page');
     const titles = {
         home:    'Credo – Daily Gospel Verse',
+        bible:   'Bible – Credo',
         saved:   'Saved Passages – Credo',
         settings:'Settings – Credo'
     };
@@ -322,49 +600,57 @@ function wrapCanvasText(ctx, text, maxW) {
 }
 
 // === BACKUP ===
-// v17 fix: the old export built favourites/notes out of `currentQuotes`, which
-// is only populated on the HOME page — on Settings (where the backup button
-// lives) the array is empty, so the downloaded backup contained zero items.
-// The export now reads everything straight from localStorage (the source of
-// truth) and embeds the full quote text whenever the passage pool can resolve it.
+// Backup format v2 (Bible reader release): favorites/notes are keyed to verse
+// refs, not passage ids — see the STORAGE SCHEMA v2 block near the top.
+//   version 2: { favorites: [{ref,label,text}], notes: [{ref,label,verse,note}] }
+//   version 1 (legacy, still importable): ids / {id,text,author} / {quote:{...},note}
+// Imports of BOTH versions are normalized to v2 before anything is written.
 async function exportBackup() {
-    // Load the passage pool (no-op if already loaded) so favourites and notes
-    // can embed the full passage text; on fetch failure loadQuotes() falls
-    // back to the built-in passages, and unresolved ids stay as bare ids
-    // (importBackup accepts both shapes).
+    await ensureMigrated();
+    // Load the passage pool (no-op if already loaded) so legacy v1 notes can
+    // embed their passage text; on fetch failure loadQuotes() falls back to
+    // the built-in passages.
     if (!currentQuotes.length) {
-        try { await loadQuotes(); } catch (e) { /* proceed — bare ids still export */ }
+        try { await loadQuotes(); } catch (e) { /* proceed — legacy notes export without text */ }
     }
     const pool = currentQuotes.length ? currentQuotes : fallbackQuotes;
 
-    // Favourites: localStorage holds plain passage ids.
-    const favIds = JSON.parse(localStorage.getItem('favorites') || '[]')
-        .map(id => parseInt(id, 10))
-        .filter(id => Number.isFinite(id));
-    const favObjs = favIds.map(id => pool.find(q => q.id === id) || id);
+    // Favorites (v2 entries; legacy ids are converted on the fly by getFavorites)
+    const favorites = getFavorites().map(f => ({ ref: f.ref, label: f.label, text: f.text || '' }));
 
-    // Notes: scan EVERY localStorage key of the form note_<id>, not just the
-    // passages that happen to be loaded on this page.
+    // Notes: v2 keys note_<REF> (single verse or compressed multi-verse
+    // selection, e.g. note_LUK.14.9-12 / note_LUK.14.9,12) + any leftover
+    // legacy note_<id> (only present when the migration has not run yet,
+    // e.g. always-offline user).
     const notes = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = String(localStorage.key(i));
-        const m = /^note_(\d+)$/.exec(key);
-        if (!m) continue;
-        const noteText = localStorage.getItem(key);
-        if (!noteText || !noteText.trim()) continue;
-        const id = parseInt(m[1], 10);
-        const q = pool.find(item => item.id === id);
-        notes.push({
-            quote: q ? { id: q.id, text: q.text, author: q.author } : { id: id },
-            note: noteText
-        });
+        const mV2 = /^note_([A-Z0-9]{2,4}\.\d+\.[\d,\-]+)$/.exec(key);
+        if (mV2) {
+            try {
+                const n = JSON.parse(localStorage.getItem(key));
+                if (n && typeof n.note === 'string' && n.note.trim()) {
+                    notes.push({ ref: mV2[1], label: n.label || refLabelFromKey(mV2[1]) || mV2[1], verse: n.verse || '', note: n.note });
+                }
+            } catch (e) { /* corrupt entry — skip */ }
+            continue;
+        }
+        const mV1 = /^note_(\d+)$/.exec(key);
+        if (mV1) {
+            const noteText = localStorage.getItem(key);
+            if (!noteText || !noteText.trim()) continue;
+            const id = parseInt(mV1[1], 10);
+            const q = pool.find(p => p.id === id);
+            const pr = q ? parseRefLabel(q.author) : null;
+            notes.push({ ref: pr ? pr.key : null, label: q ? q.author : ('Passage #' + id), verse: q ? q.text : '', note: noteText });
+        }
     }
 
     const backupData = {
-        version: 1,
+        version: 2,
         date: new Date().toISOString(),
         app: "Credo",
-        favorites: favObjs,
+        favorites: favorites,
         notes: notes
     };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
@@ -390,33 +676,76 @@ function importBackup(input) {
     }
     // Accepts .credo (current) and .thinkel (legacy pre-rename backups).
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
+            await ensureMigrated(); // try hard to be in v2 mode before writing
             const data = JSON.parse(e.target.result);
             if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('bad shape');
-            // favorites: array of quote objects (or bare ids) → sanitized numeric id list
+            const canConvert = storageV2 || poolLoadedOk;
+
+            // --- favorites: v2 objects, v1 ids or v1 passage objects ---
             if (data.favorites !== undefined) {
                 if (!Array.isArray(data.favorites)) throw new Error('favorites');
-                const ids = data.favorites
-                    .map(q => (q && typeof q === 'object') ? parseInt(q.id, 10) : parseInt(q, 10))
-                    .filter(id => Number.isFinite(id))
-                    .slice(0, 1000);
-                localStorage.setItem('favorites', JSON.stringify([...new Set(ids)]));
+                const entries = [];
+                data.favorites.forEach(q => {
+                    if (q && typeof q === 'object' && q.ref && typeof q.ref === 'string') {
+                        entries.push({ ref: q.ref, label: q.label || refLabelFromKey(q.ref) || q.ref, text: typeof q.text === 'string' ? q.text : '' });
+                        return;
+                    }
+                    const id = (q && typeof q === 'object') ? parseInt(q.id, 10) : parseInt(q, 10);
+                    if (!Number.isFinite(id)) return;
+                    let entry = favEntryFromId(id);
+                    if (!entry && q && typeof q === 'object' && typeof q.author === 'string') {
+                        const pr = parseRefLabel(q.author);          // v1 object with ref label
+                        if (pr) entry = { ref: pr.key, label: pr.label, text: typeof q.text === 'string' ? q.text : '' };
+                    }
+                    if (entry) entries.push(entry);
+                    else console.warn('[backup-import] favorite could not be converted to a verse ref — skipped:', q);
+                });
+                const seen = new Set();
+                const dedup = entries.filter(f => !seen.has(f.ref) && seen.add(f.ref)).slice(0, 1000);
+                if (canConvert) {
+                    localStorage.setItem('favorites', JSON.stringify(dedup));
+                } else {
+                    // Offline & pool unavailable: keep the raw legacy data and
+                    // let the one-shot migration convert it on a later visit.
+                    localStorage.setItem('favorites', JSON.stringify(data.favorites));
+                    localStorage.removeItem('schema_version');
+                }
             }
-            // notes: { quote: { id }, note: string } — validated + capped
+
+            // --- notes: v2 {ref,note,...} or v1 {quote:{...},note} ---
             if (data.notes !== undefined) {
                 if (!Array.isArray(data.notes)) throw new Error('notes');
-                data.notes
-                    .filter(item => item && typeof item === 'object'
-                        && item.quote && typeof item.quote === 'object'
-                        && Number.isFinite(parseInt(item.quote.id, 10))
-                        && typeof item.note === 'string'
-                        && item.note.length <= 10000)
+                data.notes.filter(item => item && typeof item === 'object'
+                        && typeof item.note === 'string' && item.note.length <= 10000)
                     .slice(0, 1000)
                     .forEach(item => {
-                        localStorage.setItem(`note_${parseInt(item.quote.id, 10)}`, item.note);
+                        let refKey = null, label = null, verse = '';
+                        if (item.ref && typeof item.ref === 'string' && /^[A-Z0-9]{2,4}\.\d+\.\d+$/.test(item.ref)) {
+                            refKey = item.ref;
+                            label = item.label || refLabelFromKey(refKey) || refKey;
+                            verse = typeof item.verse === 'string' ? item.verse : '';
+                        } else if (item.quote && typeof item.quote === 'object') {
+                            const id = parseInt(item.quote.id, 10);
+                            let pr = null;
+                            const q = Number.isFinite(id) ? currentQuotes.find(p => p.id === id) : null;
+                            pr = q ? parseRefLabel(q.author) : null;
+                            if (!pr && typeof item.quote.author === 'string') pr = parseRefLabel(item.quote.author);
+                            if (pr) {
+                                refKey = pr.key;
+                                label = pr.label;
+                                verse = (typeof item.quote.text === 'string' && item.quote.text) ? item.quote.text : (q ? q.text : '');
+                            }
+                        }
+                        if (!refKey) {
+                            console.warn('[backup-import] note could not be converted to a verse ref — skipped:', item);
+                            return;
+                        }
+                        localStorage.setItem('note_' + refKey, JSON.stringify({ note: item.note, verse: verse, label: label }));
                     });
             }
+
             if (typeof loadDailyQuote === 'function') loadDailyQuote();
             if (typeof updateFavButtonState === 'function') updateFavButtonState();
             if (typeof renderSaved === 'function') renderSaved();
@@ -500,7 +829,15 @@ async function handleDateChange(dateString) {
         quote = currentQuotes[seed % currentQuotes.length];
     }
     currentQuote = quote;
-    
+
+    // Verse-reference anchor for this passage (schema v2): the daily quote's
+    // ref like "Luke 2:16" (or a range "John 9:35-38") becomes the stable
+    // verse key "LUK.2.16" used for favorites, notes and the
+    // "Read full chapter" deep link into the Bible reader.
+    const pr = parseRefLabel(currentQuote.author);
+    currentQuote.verseKey = pr ? pr.key : null;
+    currentQuote.verseChapter = pr ? pr.chapter : null;
+
     const quoteTextEl = document.getElementById('daily-quote-text');
     const quoteAuthorEl = document.getElementById('daily-quote-author');
     if (quoteTextEl) quoteTextEl.textContent = `"${currentQuote.text}"`;
@@ -513,10 +850,30 @@ async function handleDateChange(dateString) {
         quoteSourceEl.style.display = note ? 'block' : 'none';
     }
     
+    // "Read full chapter" button: visible whenever the daily ref parses
+    const chapterBtn = document.getElementById('btn-full-chapter');
+    if (chapterBtn) chapterBtn.style.display = currentQuote.verseKey ? 'flex' : 'none';
+    
     if (typeof updateFavButtonState === 'function') updateFavButtonState();
 }
 
+// Home → Bible reader: open the WHOLE chapter the daily verse belongs to and
+// scroll to + highlight the verse itself (bible?ref=LUK.2.16). When the daily
+// passage is a RANGE ("John 9:35-38"), the human label is passed instead so
+// the reader pre-selects every verse of the range with the same green
+// highlight.
+function goToFullChapter() {
+    if (!currentQuote || !currentQuote.verseKey) return;
+    const pr = parseRefLabel(currentQuote.author);
+    const target = (pr && pr.endVerse) ? currentQuote.author : currentQuote.verseKey;
+    window.location.href = 'bible?ref=' + encodeURIComponent(target);
+}
+
 async function loadDailyQuote() {
+    // Run the one-shot storage v1→v2 migration on every visit (the Home page
+    // is the app's entry point, so this is where most users get migrated).
+    // Safe to call repeatedly; see STORAGE SCHEMA v2 at the top of the file.
+    await ensureMigrated();
     await loadQuotes();
     await loadCalendar();
     // Local calendar date, NOT toISOString() (UTC) — in Slovenia between
@@ -527,22 +884,60 @@ async function loadDailyQuote() {
 }
 
 // === FAVORITES ===
-function toggleFavorite(id) {
-    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-    const index = favorites.indexOf(id);
+// Schema v2: favorites are keyed to verse refs ("LUK.2.16"), NOT numeric ids.
+// See the STORAGE SCHEMA v2 comment block near the top of this file.
+// toggleFavoriteRef(refKey, label, text) — add/remove a single verse.
+// toggleCurrentFavorite()      — the Home daily-quote heart button.
+// A legacy id-based path is kept for the rare case where the migration could
+// not run yet (offline first visit): then the daily quote still toggles by id.
+function toggleFavoriteRef(refKey, label, text) {
+    let favorites = getFavorites();
+    const index = favorites.findIndex(f => f.ref === refKey);
     const btn = document.getElementById('btn-fav-daily');
     const icon = btn ? btn.querySelector('.material-icons-round') : null;
     
-    if (index === -1) { 
-        favorites.push(id); 
+    if (index === -1) {
+        favorites.push({ ref: refKey, label: label || refLabelFromKey(refKey) || refKey, text: text || '' });
         showToast(t('added_fav'));
         if (icon) {
             icon.classList.add('anim-pop');
             setTimeout(() => icon.classList.remove('anim-pop'), 300);
         }
-    } else { 
-        favorites.splice(index, 1); 
-        showToast(t('removed_fav')); 
+    } else {
+        favorites.splice(index, 1);
+        showToast(t('removed_fav'));
+    }
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    if (typeof updateFavButtonState === 'function') updateFavButtonState();
+    if (typeof renderSaved === 'function') renderSaved();
+}
+
+function toggleCurrentFavorite() {
+    if (storageV2 && currentQuote && currentQuote.verseKey) {
+        toggleFavoriteRef(currentQuote.verseKey, currentQuote.author, currentQuote.text);
+        return;
+    }
+    // Legacy v1 mode (migration not yet possible — pool unavailable):
+    // keep the old id-based behaviour so nothing breaks or gets lost.
+    toggleFavoriteLegacy(currentQuote.id);
+}
+
+function toggleFavoriteLegacy(id) {
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    const index = favorites.indexOf(id);
+    const btn = document.getElementById('btn-fav-daily');
+    const icon = btn ? btn.querySelector('.material-icons-round') : null;
+    
+    if (index === -1) {
+        favorites.push(id);
+        showToast(t('added_fav'));
+        if (icon) {
+            icon.classList.add('anim-pop');
+            setTimeout(() => icon.classList.remove('anim-pop'), 300);
+        }
+    } else {
+        favorites.splice(index, 1);
+        showToast(t('removed_fav'));
     }
     localStorage.setItem('favorites', JSON.stringify(favorites));
     if (typeof updateFavButtonState === 'function') updateFavButtonState();
@@ -550,12 +945,17 @@ function toggleFavorite(id) {
 }
 
 function updateFavButtonState() {
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
     const btn = document.getElementById('btn-fav-daily');
     if (!btn) return;
-    
     const icon = btn.querySelector('.material-icons-round');
-    if (favorites.includes(currentQuote.id)) {
+    let active = false;
+    if (storageV2 && currentQuote && currentQuote.verseKey) {
+        active = isFavoriteRef(currentQuote.verseKey);
+    } else if (currentQuote && currentQuote.id != null) {
+        // legacy check (works for both v1 arrays and on-the-fly conversion)
+        active = getFavorites().some(f => f.ref === (favEntryFromId(currentQuote.id) || {}).ref);
+    }
+    if (active) {
         btn.classList.add('active');
         btn.setAttribute('aria-pressed', 'true');
         icon.textContent = 'favorite';
@@ -822,17 +1222,18 @@ async function renderFavorites() {
     const emptyEl = document.getElementById('no-favorites');
     if (!listEl || !emptyEl) return;
     
-    // Make sure quotes are loaded
+    // Storage v2 migration (one-shot; see the comment block at the top) + pool
+    await ensureMigrated();
     if (currentQuotes.length === 0) {
         await loadQuotes();
     }
     
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    const favorites = getFavorites();
     listEl.innerHTML = '';
     
-    const filteredFavs = favorites.map(id => currentQuotes.find(q => q.id === id))
-                                 .filter(q => q && (q.text.toLowerCase().includes(searchQuery) || 
-                                                   (q.author && q.author.toLowerCase().includes(searchQuery))));
+    const filteredFavs = favorites.filter(q =>
+        (q.text || '').toLowerCase().includes(searchQuery) ||
+        (q.label || '').toLowerCase().includes(searchQuery));
 
     if (filteredFavs.length === 0) {
         emptyEl.style.display = 'block';
@@ -856,17 +1257,17 @@ async function renderFavorites() {
         const item = document.createElement('div');
         item.className = 'fav-item';
         
-        item.onmousedown = (e) => handleTouchStart(e, quote.id, 'fav');
-        item.onmouseup = (e) => handleTouchEnd(e, quote.id, 'fav');
+        item.onmousedown = (e) => handleTouchStart(e, quote.ref, 'fav');
+        item.onmouseup = (e) => handleTouchEnd(e, quote.ref, 'fav');
         item.onmouseleave = () => clearTimeout(longPressTimer);
-        item.ontouchstart = (e) => handleTouchStart(e, quote.id, 'fav');
-        item.ontouchend = (e) => handleTouchEnd(e, quote.id, 'fav');
+        item.ontouchstart = (e) => handleTouchStart(e, quote.ref, 'fav');
+        item.ontouchend = (e) => handleTouchEnd(e, quote.ref, 'fav');
         item.ontouchmove = handleTouchMove;
 
         item.innerHTML = `
             <div class="fav-content">
-                <div class="fav-quote">"${escapeHtml(quote.text)}"</div>
-                <div class="fav-author">${escapeHtml(getAttribution(quote, true))}</div>
+                <div class="fav-quote">"${escapeHtml(quote.text || quote.label)}"</div>
+                <div class="fav-author">${escapeHtml('- ' + (quote.label || ''))}</div>
             </div>
         `;
         listEl.appendChild(item);
@@ -878,26 +1279,56 @@ async function renderNotes() {
     const emptyEl = document.getElementById('no-notes');
     if (!listEl || !emptyEl) return;
     
-    // Make sure quotes are loaded
+    // Storage v2 migration (one-shot; see the comment block at the top) + pool
+    await ensureMigrated();
     if (currentQuotes.length === 0) {
         await loadQuotes();
     }
     
     listEl.innerHTML = '';
     
+    // v2 notes live under note_<REF> keys (JSON objects with the verse text
+    // embedded) — REF is a single verse (LUK.2.16) or a compressed selection
+    // (LUK.14.9-12 / LUK.14.9,12); legacy v1 note_<id> keys (plain strings)
+    // are shown too when the migration could not run yet (offline) — best
+    // effort via the pool.
     const allNotes = [];
-    currentQuotes.forEach(quote => {
-        const note = localStorage.getItem(`note_${quote.id}`);
-        if (note && note.trim().length > 0) {
-            if (note.toLowerCase().includes(searchQuery) || 
-                quote.text.toLowerCase().includes(searchQuery) ||
-                (quote.author && quote.author.toLowerCase().includes(searchQuery))) {
-                allNotes.push({ quote, note });
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = String(localStorage.key(i));
+        const mV2 = /^note_([A-Z0-9]{2,4}\.\d+\.[\d,\-]+)$/.exec(key);
+        if (mV2) {
+            let obj = null;
+            try { obj = JSON.parse(localStorage.getItem(key)); } catch (e) { obj = null; }
+            if (obj && typeof obj.note === 'string') {
+                allNotes.push({
+                    ref: mV2[1],
+                    note: obj.note,
+                    verse: obj.verse || '',
+                    label: obj.label || refLabelFromKey(mV2[1]) || mV2[1]
+                });
             }
+            continue;
         }
-    });
+        const mV1 = /^note_(\d+)$/.exec(key);
+        if (mV1) {
+            const noteText = localStorage.getItem(key);
+            if (!noteText || !noteText.trim()) continue;
+            const q = currentQuotes.find(p => p.id === parseInt(mV1[1], 10));
+            allNotes.push({
+                ref: q ? (parseRefLabel(q.author) || {}).key || mV1[1] : mV1[1],
+                note: noteText,
+                verse: q ? q.text : '',
+                label: q ? q.author : ('Passage #' + mV1[1])
+            });
+        }
+    }
 
-    if (allNotes.length === 0) {
+    const filteredNotes = allNotes.filter(n =>
+        n.note.toLowerCase().includes(searchQuery) ||
+        (n.verse || '').toLowerCase().includes(searchQuery) ||
+        (n.label || '').toLowerCase().includes(searchQuery));
+
+    if (filteredNotes.length === 0) {
         emptyEl.style.display = 'block';
         const titleEl = emptyEl.querySelector('.empty-title');
         const subEl = emptyEl.querySelector('p');
@@ -915,21 +1346,21 @@ async function renderNotes() {
         emptyEl.style.display = 'none';
     }
 
-    allNotes.forEach(({ quote, note }) => {
+    filteredNotes.forEach(({ ref, note, verse, label }) => {
         const item = document.createElement('div');
         item.className = 'note-item';
         
-        item.onmousedown = (e) => handleTouchStart(e, quote.id, 'note');
-        item.onmouseup = (e) => handleTouchEnd(e, quote.id, 'note');
+        item.onmousedown = (e) => handleTouchStart(e, ref, 'note');
+        item.onmouseup = (e) => handleTouchEnd(e, ref, 'note');
         item.onmouseleave = () => clearTimeout(longPressTimer);
-        item.ontouchstart = (e) => handleTouchStart(e, quote.id, 'note');
-        item.ontouchend = (e) => handleTouchEnd(e, quote.id, 'note');
+        item.ontouchstart = (e) => handleTouchStart(e, ref, 'note');
+        item.ontouchend = (e) => handleTouchEnd(e, ref, 'note');
         item.ontouchmove = handleTouchMove;
 
         item.innerHTML = `
             <div class="note-content">
-                <span class="note-quote-ref">"${escapeHtml(quote.text)}"</span>
-                <div class="note-author">${escapeHtml(getAttribution(quote, true))}</div>
+                <span class="note-quote-ref">"${escapeHtml(verse || label)}"</span>
+                <div class="note-author">${escapeHtml('- ' + label)}</div>
                 <div class="note-body">${escapeHtml(note)}</div>
             </div>
         `;
@@ -974,23 +1405,50 @@ document.addEventListener('keydown', (e) => {
     else if (open.id === 'color-modal') { closeColorPicker(); }   // wallpaper page
 });
 
-function openNotesModalForEdit(quoteId) {
-    const quote = currentQuotes.find(q => q.id === quoteId);
-    if (!quote) return;
-    currentQuote = quote;
-    
+// === NOTES (schema v2: notes are keyed to verse refs, see top of file) ===
+// currentNoteTarget = { ref, label, verse } for the note currently being
+// edited in the modal; null in legacy id-based mode.
+let currentNoteTarget = null;
+
+// Open the notes modal for ANY verse (Bible reader uses this)
+function openNotesModalForVerse(refKey, label, verseText) {
+    // refKey: single verse (LUK.2.16) or a compressed selection
+    // (LUK.14.9-12 / LUK.14.9,12) — both are valid note targets.
+    if (!refKey || !/^[A-Z0-9]{2,4}\.\d+\.[\d,\-]+$/.test(refKey)) return;
+    currentNoteTarget = {
+        ref: refKey,
+        label: label || refLabelFromKey(refKey) || refKey,
+        verse: verseText || ''
+    };
     const modal = document.getElementById('notes-modal');
     const textArea = document.getElementById('modal-note-input');
-    const savedNote = localStorage.getItem(`note_${quoteId}`);
-    textArea.value = savedNote || "";
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('note_' + refKey)); } catch (e) { saved = null; }
+    textArea.value = (saved && typeof saved.note === 'string') ? saved.note : "";
     
-    updateModalQuoteRef(quote);
+    updateModalQuoteRef({ text: currentNoteTarget.verse || currentNoteTarget.label, author: currentNoteTarget.label });
     
     openModalA11y(modal);
     setTimeout(() => textArea.focus(), 120);
 }
 
+// Saved page long-press "My Thoughts" — takes a verse ref key now.
+function openNotesModalForEdit(refKey) {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('note_' + refKey)); } catch (e) { saved = null; }
+    const favEntry = getFavorites().find(f => f.ref === refKey);
+    const verseText = (saved && saved.verse) || (favEntry && favEntry.text) || '';
+    openNotesModalForVerse(refKey, (saved && saved.label) || null, verseText);
+}
+
+// Home daily-quote "My Thoughts" button
 function openNotesModal() {
+    if (storageV2 && currentQuote && currentQuote.verseKey) {
+        openNotesModalForVerse(currentQuote.verseKey, currentQuote.author, currentQuote.text);
+        return;
+    }
+    // Legacy v1 mode (migration not yet possible): id-based note handling.
+    currentNoteTarget = null;
     const modal = document.getElementById('notes-modal');
     const textArea = document.getElementById('modal-note-input');
     const savedNote = localStorage.getItem(`note_${currentQuote.id}`);
@@ -1020,11 +1478,27 @@ function closeNotesModal() {
 function saveNoteFromModal() {
     const textArea = document.getElementById('modal-note-input');
     const text = textArea.value;
+    if (currentNoteTarget) {
+        // v2: note_<REF> = JSON { note, verse, label } (verse text embedded so
+        // the Saved page renders fully offline)
+        const key = 'note_' + currentNoteTarget.ref;
+        if (!text.trim()) {
+            localStorage.removeItem(key);   // empty note = delete
+        } else {
+            localStorage.setItem(key, JSON.stringify({
+                note: text,
+                verse: currentNoteTarget.verse || '',
+                label: currentNoteTarget.label || ''
+            }));
+        }
+        return;
+    }
+    // legacy id-based path (pre-migration only)
     localStorage.setItem(`note_${currentQuote.id}`, text);
 }
 
-function showDeleteModal(type, id) {
-    itemToDelete = { type, id };
+function showDeleteModal(type, refKey) {
+    itemToDelete = { type, ref: refKey };
     const modalTitle = document.getElementById('delete-modal-title');
     const modalText = document.getElementById('delete-modal-text');
     if (type === 'fav') {
@@ -1048,9 +1522,9 @@ function closeDeleteModal(event, force = false) {
 function confirmDelete() {
     if (!itemToDelete) return;
     if (itemToDelete.type === 'fav') {
-        toggleFavorite(itemToDelete.id);
+        toggleFavoriteRef(itemToDelete.ref);
     } else if (itemToDelete.type === 'note') {
-        localStorage.removeItem(`note_${itemToDelete.id}`);
+        localStorage.removeItem('note_' + itemToDelete.ref);
         showToast(t('removed_note'));
         if (typeof renderSaved === 'function') renderSaved();
     }

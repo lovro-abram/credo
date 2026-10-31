@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Credo – Daily Gospel Verse",
   "short_name": "Credo",
-  "description": "A Gospel verse every day, favorites, notes and a wallpaper editor. Free Bible web app and PWA.",
+  "description": "A Gospel verse every day, read the whole Bible, favorites, notes and a wallpaper editor. Free Bible web app and PWA.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -31,6 +31,11 @@
     {
       "name": "Today's passage",
       "url": "./",
+      "icons": [{ "src": "icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Read the Bible",
+      "url": "./bible",
       "icons": [{ "src": "icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {

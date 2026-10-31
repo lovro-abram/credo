@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F1F6EC">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='4' width='27' height='27' rx='6' fill='%231CA85E'/%3E%3Crect x='5' y='1' width='27' height='27' rx='6' fill='%23FFFFFF' stroke='%2312291A' stroke-width='2'/%3E%3Ctext x='18' y='21' font-size='15' font-family='Arial Black,Arial,sans-serif' font-weight='900' text-anchor='middle' fill='%2312291A'%3EC%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
+    <title>Bible – Credo</title>
+    <meta name="description" content="Read the whole Holy Bible online — all 66 books in the Berean Standard Bible (BSB, public domain). Free web app and PWA.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="canonical" href="https://credo.labram.workers.dev/bible">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Credo">
+    <meta property="og:url" content="https://credo.labram.workers.dev/bible">
+    <meta property="og:title" content="Bible – Credo">
+    <meta property="og:description" content="Read the whole Holy Bible online — Berean Standard Bible (public domain).">
+    <meta property="og:image" content="https://credo.labram.workers.dev/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="en_US">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=22">
+</head>
+<body data-page="bible">
+
+    <div id="app-container">
+        <header>
+            <!-- Back arrow lives IN the header, same line as the Credo title
+                 (same pattern as the wallpaper editor). The header is part of
+                 the fixed app shell, so it stays put however far the chapter
+                 text is scrolled. Shown only while a chapter is open —
+                 bible.js toggles .show. -->
+            <button class="bible-back" id="bible-back" onclick="backToLibrary()" aria-label="All books">
+                <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+            </button>
+            <h1>Credo</h1>
+        </header>
+
+        <main>
+            <h2 class="vh" data-i18n="nav_bible">Bible</h2>
+
+            <!-- Offline state: shown when the book index cannot be fetched.
+                 Bible reading is online-only BY DESIGN (see sw.js — bsb-full
+                 data is never cached); daily passage + favorites + notes
+                 still work offline. -->
+            <div id="bible-offline" class="card bible-offline" style="display:none;">
+                <span class="material-icons-round bible-offline-icon" aria-hidden="true">wifi_off</span>
+                <div class="bible-offline-title" data-i18n="bible_offline_title">You're offline</div>
+                <p class="bible-offline-text" data-i18n="bible_offline_text">Reading the whole Bible needs an internet connection. Your daily passage, favorites and notes still work offline.</p>
+                <button class="btn btn-primary" onclick="location.reload()">
+                    <span class="material-icons-round" aria-hidden="true">refresh</span>
+                    <span data-i18n="bible_retry">Try again</span>
+                </button>
+            </div>
+
+            <!-- Library: pick a book. Tapping a book expands its chapters
+                 inline (accordion) right below the book row — no separate
+                 chapter screen. -->
+            <div id="bible-library" style="display:none;">
+                <div class="bible-page-head">
+                    <div class="bible-page-title" data-i18n="bible_title">The Bible</div>
+                    <div class="bible-page-sub">Berean Standard Bible</div>
+                </div>
+
+                <div id="bible-continue" style="display:none;">
+                    <button id="bible-continue-btn" class="btn btn-secondary continue-chip" onclick="continueReading()">
+                        <span class="material-icons-round" aria-hidden="true">play_arrow</span>
+                        <span id="bible-continue-label">Continue reading</span>
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="bible-section-title" data-i18n="old_testament">Old Testament</div>
+                    <div id="books-ot" class="book-list"></div>
+                    <div class="bible-section-title" style="margin-top:18px;" data-i18n="new_testament">New Testament</div>
+                    <div id="books-nt" class="book-list"></div>
+                </div>
+            </div>
+
+            <!-- Chapter reading view -->
+            <div id="bible-chapter" style="display:none;">
+                <div class="card chapter-card">
+                    <div class="chapter-title" id="chapter-view-title">Chapter</div>
+                    <div id="chapter-verses" class="chapter-verses"></div>
+
+                    <div class="chapter-nav">
+                        <button class="btn btn-secondary" id="btn-prev-chapter" onclick="gotoChapterRelative(-1)">
+                            <span class="material-icons-round" aria-hidden="true">chevron_left</span>
+                            <span data-i18n="prev_chapter">Previous</span>
+                        </button>
+                        <button class="btn btn-primary" id="btn-next-chapter" onclick="gotoChapterRelative(1)">
+                            <span data-i18n="next_chapter">Next</span>
+                            <span class="material-icons-round" aria-hidden="true">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="bible-attribution" id="bible-attribution">Berean Standard Bible (BSB) — public domain.</p>
+            </div>
+
+            <!-- Loading indicator -->
+            <div id="bible-loading" class="bible-loading" style="display:none;">
+                <span class="material-icons-round" aria-hidden="true">hourglass_empty</span>
+                <span data-i18n="loading_chapter">Loading chapter...</span>
+            </div>
+
+            <!-- Floating bar for the selected verse(s): favorite / note / copy.
+                 Shown by bible.js whenever at least one verse is selected. -->
+            <div id="selection-bar" class="selection-bar" style="display:none;" role="toolbar" aria-label="Actions for selected verses">
+                <button type="button" class="verse-action" id="sel-fav" aria-label="Save to favorites" onclick="toggleFavoritesForSelection()">
+                    <span class="material-icons-round" aria-hidden="true">favorite_border</span>
+                </button>
+                <button type="button" class="verse-action" id="sel-note" aria-label="Add a thought" onclick="openNoteForSelection()">
+                    <span class="material-icons-round" aria-hidden="true">edit_note</span>
+                </button>
+                <button type="button" class="verse-action" id="sel-copy" aria-label="Copy selected verses" onclick="copySelectedVerses()">
+                    <span class="material-icons-round" aria-hidden="true">content_copy</span>
+                </button>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="./" class="nav-item">
+                <span class="nav-quote-icon" aria-hidden="true">❞</span>
+                <span data-i18n="nav_today">Home</span>
+            </a>
+            <a href="bible" class="nav-item active">
+                <span class="material-icons-round" aria-hidden="true">menu_book</span>
+                <span data-i18n="nav_bible">Bible</span>
+            </a>
+            <a href="settings" class="nav-item">
+                <span class="material-icons-round" aria-hidden="true">settings</span>
+                <span data-i18n="nav_settings">Settings</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Notes Modal (shared markup, same as index/saved) -->
+    <div id="notes-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" id="notes-modal-title" data-i18n="my_thoughts">My Thoughts</h3>
+                <button class="btn btn-icon-only btn-secondary" style="width:auto;" onclick="closeNotesModal()">
+                    <span class="material-icons-round" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <div id="modal-quote-ref" class="modal-quote-ref">
+                <span id="modal-quote-text" class="modal-quote-text">...</span>
+                <span id="modal-quote-author" class="modal-quote-author">...</span>
+            </div>
+
+            <textarea id="modal-note-input" class="modal-note-area" placeholder="..." oninput="saveNoteFromModal()"></textarea>
+            <button class="btn btn-primary" onclick="closeNotesModal()" data-i18n="save_close">Save & Close</button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" role="status" aria-live="polite">
+        <span class="material-icons-round toast-icon" aria-hidden="true">check_circle</span>
+        <span id="toast-message">Message</span>
+    </div>
+
+    <script src="js/app.js?v=22"></script>
+    <script src="js/bible.js?v=22"></script>
+    <script>
+        // Initialize Bible page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            updateTexts();
+            initBible();
+        });
+    </script>
+</body>
+</html>

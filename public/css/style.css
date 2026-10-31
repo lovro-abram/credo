@@ -37,6 +37,7 @@
                                   5.0:1 on paper (WCAG AA); --green stays for fills/borders */
     --green-deep:   #0E3D23;
     --green-tint:   #C9ECD5;
+    --green-tint-faint: #E4F4EA;   /* hint of green for the saved-note marker */
     --on-green:     #0A2414;
 
     --gold:         #F2A93B;
@@ -89,9 +90,21 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+html {
+    /* VIEWPORT SCROLL LOCK — the page itself must NEVER scroll (main is the
+       only scrollable area). Without this, mobile browsers pair html's
+       overflow-x: clip with overflow-y: visible → the viewport becomes
+       scrollable (overflow-y: auto) and on phones you can drag the WHOLE app
+       up so the Credo header slides off-screen, even when there is nothing
+       to scroll. overflow: hidden on the root kills that; main keeps its
+       internal scrolling, 100dvh keeps the height phone-URL-bar aware. */
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;   /* no page-level rubber-banding */
+}
+
 html, body {
     font-size: var(--base-font-size);
-    overflow-x: clip;
 }
 
 body {
@@ -105,8 +118,7 @@ body {
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    overflow-x: clip;
-    overflow-y: hidden;   /* app shell: main scrolls, body never does */
+    overflow: hidden;      /* app shell: main scrolls, body never does */
     transition: background-color 0.3s, color 0.3s;
 }
 
@@ -323,11 +335,26 @@ main::-webkit-scrollbar { display: none; }
 .anim-pop { animation: heartPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
 /* ═══ LONG PRESS ═════════════════════════════════════════ */
+/* Long-press state: the item is put into "editing mode" and an action row
+   (My Thoughts / Yes, Delete) is appended INSIDE it. Two traps to avoid:
+   1. pointer-events: none on the item would ALSO kill the action row's
+      buttons (they rendered fine but were click-dead) — the row re-enables
+      them explicitly.
+   2. blur on the item itself would blur the menu too — only the passage
+      CONTENT is blurred instead, so the menu stays crisp. */
 .long-press-active {
+    pointer-events: none;
+}
+
+.long-press-active .fav-content,
+.long-press-active .note-content {
     filter: blur(4px);
     opacity: 0.6;
     transition: filter 0.2s ease, opacity 0.2s ease;
-    pointer-events: none;
+}
+
+.long-press-active .action-row {
+    pointer-events: auto;
 }
 
 .action-row {
@@ -1183,7 +1210,8 @@ input[type="range"]::-moz-range-thumb {
 /* ═══ USER PREFERENCES ═══════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
-    .long-press-active { filter: none; opacity: 0.7; }
+    .long-press-active .fav-content,
+    .long-press-active .note-content { filter: none; opacity: 0.7; }
 }
 
 /* ═══ v12 ACCESSIBILITY HELPERS ══════════════════════════ */
@@ -1209,4 +1237,326 @@ button.segment-opt {
     -webkit-appearance: none;
     appearance: none;
     touch-action: manipulation;
+}
+
+/* ═══ BIBLE READER (v19) ═══════════════════════════════════
+   bible.html — same neo-brutalism tokens as the rest of the app.
+   Reading long-form Scripture: serif face, slightly tighter than
+   the big daily quote, scales with the font-size setting. */
+.bible-page-head { margin-bottom: 14px; }
+
+.bible-page-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--ink);
+    text-transform: uppercase;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.bible-page-sub {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-top: 2px;
+}
+
+/* Old / New Testament section labels */
+.bible-section-title {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+}
+
+/* Book list — 66 rows. Tapping a row expands its chapter grid INLINE
+   (accordion) right below the row — there is no separate chapter screen. */
+.book-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.book-row {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: var(--border-w) solid var(--ink);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+    text-align: left;
+}
+
+.book-row:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 0 var(--shadow-c); }
+.book-row:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 0 var(--shadow-c); }
+.book-row:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+.book-row-meta {
+    margin-left: auto;
+    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+}
+
+.book-row-arrow {
+    font-size: 20px;
+    color: var(--ink-soft);
+    transition: transform 0.15s var(--ease);
+}
+
+.book-row.open { background: var(--green-tint); }
+.book-row.open .book-row-arrow { transform: rotate(90deg); }
+
+/* Chapter grid drawn directly below the expanded book row */
+.book-chapters { padding: 10px 2px 2px; }
+
+/* Continue-reading chip */
+.continue-chip { margin-bottom: 14px; width: 100%; }
+
+/* Back arrow in the HEADER — same line as the Credo title, exactly like the
+   wallpaper editor's back button. The header sits in the fixed app shell
+   (only <main> scrolls), so the button stays visible however far down the
+   user scrolls. Hidden by default; bible.js adds .show while a chapter is
+   open. Deliberately NOT the global .back-btn (positioning differs). */
+.bible-back {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: var(--surface);
+    border: var(--border-w) solid var(--ink);
+    border-radius: var(--r-md);
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.bible-back.show { display: flex; }
+.bible-back:hover { transform: translateY(-50%) translate(-1px, -1px); box-shadow: 4px 4px 0 0 var(--shadow-c); }
+.bible-back:active { transform: translateY(-50%) translate(2px, 2px); box-shadow: 1px 1px 0 0 var(--shadow-c); }
+
+/* Chapter number grid */
+.chapter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px;
+}
+
+.chapter-num {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--surface);
+    border: var(--border-w) solid var(--ink);
+    border-radius: var(--r-md);
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    min-height: 48px;
+    transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.chapter-num:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 0 var(--shadow-c); background: var(--green-tint); }
+.chapter-num:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 0 var(--shadow-c); }
+.chapter-num:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+/* Reading view */
+.chapter-card { padding-bottom: 18px; }
+
+.chapter-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--ink);
+    text-transform: uppercase;
+    font-weight: 400;
+    margin-bottom: 12px;
+}
+
+.chapter-verses {
+    font-family: var(--font-quote);
+    font-size: calc(var(--quote-font-size) * 0.72);   /* scales with the font-size setting */
+    line-height: 1.75;
+    color: var(--ink);
+}
+
+.verse {
+    padding: 6px 10px;
+    margin: 0 -10px;
+    border-radius: var(--r-md);
+    border-left: 4px solid transparent;
+    cursor: pointer;
+}
+
+.verse:active { background: var(--surface-2); }
+
+/* Selected verses — persistent light green. A verse is selected when tapped
+   and stays selected after the tap is released (tap again to deselect).
+   Any number of verses can be selected at once — adjacent or not. The
+   "Read full chapter" deep link pre-selects the daily verse the same way. */
+.verse.selected {
+    background: var(--green-tint);
+    border-left-color: var(--green);
+}
+
+/* Verses with a saved note (comment) — deliberately almost invisible: just
+   a VERY light green in the exact spot that turns dark green when the verse
+   is selected (the 4px left edge). :not(.selected) guarantees a selected
+   verse looks EXACTLY like every other selected verse — selection always
+   wins over the note marker. */
+.verse.has-note:not(.selected) { border-left-color: var(--green-tint-faint); }
+
+/* One-shot pop when a verse is auto-selected by a deep link */
+.verse.pop { animation: verse-pop 0.5s var(--ease); }
+
+.verse-num {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 0.62em;
+    color: var(--green-text);
+    vertical-align: super;
+    margin-right: 2px;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+@keyframes verse-pop {
+    0% { transform: scale(0.99); opacity: 0.4; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Action buttons (also used inside the floating selection bar) */
+.verse-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    background: var(--surface);
+    border: 3px solid var(--ink);
+    border-radius: var(--r-pill);
+    box-shadow: 2px 2px 0 0 var(--shadow-c);
+    cursor: pointer;
+    color: var(--ink);
+    text-decoration: none;
+    transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.verse-action:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 0 var(--shadow-c); }
+.verse-action:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--shadow-c); }
+.verse-action .material-icons-round { font-size: 20px; }
+.verse-action.is-fav { color: var(--red); }
+.verse-action.is-fav .material-icons-round { font-size: 20px; }
+.verse-action.disabled { opacity: 0.4; pointer-events: none; }
+
+/* Floating bar for the current selection: favorite / note / copy.
+   Appears above the bottom nav whenever at least one verse is selected. */
+.selection-bar {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(90px + var(--safe-area-bottom));
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: var(--border-w) solid var(--ink);
+    border-radius: var(--r-pill);
+    box-shadow: var(--shadow-md);
+    z-index: 120;
+    animation: bar-pop 0.18s var(--ease);
+}
+
+@keyframes bar-pop {
+    0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Prev / next chapter row */
+.chapter-nav {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.chapter-nav .btn { flex: 1; }
+.chapter-nav .btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: var(--shadow-sm); }
+
+/* Translation attribution under the chapter */
+.bible-attribution {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin: 10px 4px 6px;
+    line-height: 1.5;
+}
+
+/* Loading indicator */
+.bible-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--ink-soft);
+    font-family: var(--font-ui);
+    font-weight: 500;
+    padding: 40px 0;
+}
+
+.bible-loading .material-icons-round { animation: spin 1.2s linear infinite; }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Offline screen — Bible reading is online-only by design */
+.bible-offline {
+    text-align: center;
+    padding: 34px 22px;
+    border-color: var(--gold);
+}
+
+.bible-offline-icon {
+    font-size: 54px;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 10px;
+}
+
+.bible-offline-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--ink);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 400;
+}
+
+.bible-offline-text {
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-bottom: 18px;
 }
