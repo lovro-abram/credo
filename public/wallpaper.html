@@ -10,760 +10,401 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='4' width='27' height='27' rx='6' fill='%231CA85E'/%3E%3Crect x='5' y='1' width='27' height='27' rx='6' fill='%23FFFFFF' stroke='%2312291A' stroke-width='2'/%3E%3Ctext x='18' y='21' font-size='15' font-family='Arial Black,Arial,sans-serif' font-weight='900' text-anchor='middle' fill='%2312291A'%3EC%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    
+
     <title>Wallpaper Editor – Credo</title>
-    <meta name="description" content="Create your own Bible verse wallpaper: choose aspect ratio (9:16 story, 9:19.5 phone, 16:9 desktop), font, color and text position.">
+    <meta name="description" content="Create your own Bible verse wallpaper in four easy steps: pick the picture, style the text, tune readability, save or share.">
     <link rel="canonical" href="https://credo.labram.workers.dev/wallpaper">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Credo">
     <meta property="og:url" content="https://credo.labram.workers.dev/wallpaper">
     <meta property="og:title" content="Wallpaper Editor – Credo">
-    <meta property="og:description" content="Create your own Bible verse wallpaper: 9:16 story, phone or desktop, with your favorite fonts and colors.">
+    <meta property="og:description" content="Create your own Bible verse wallpaper in four easy steps: picture, text, color, save.">
     <meta property="og:image" content="https://credo.labram.workers.dev/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
     <meta property="og:locale" content="en_US">
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Wallpaper Editor – Credo">
-    <meta name="twitter:description" content="Create your own Bible verse wallpaper for your phone.">
-    <meta name="twitter:image" content="https://credo.labram.workers.dev/og-image.png">
-    <meta name="twitter:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
-    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Caveat:wght@400;700&family=Montserrat:wght@400;600&family=Merriweather:wght@300;400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css?v=24">
-    
+
     <style>
-        :root {
-            --base-font-size: 16px;
-            --quote-font-size: 1.6rem;
-        }
-        
-        html, body {
-            height: 100%;
-            height: 100dvh;
-            overflow: hidden;
-            margin: 0;
-            padding: 0;
-            font-size: var(--base-font-size);
-        }
-        
-        #wallpaper-page {
-            height: 100%;
-            height: 100dvh;
-            overflow: hidden;
-        }
-        
-        #wallpaper-page #app-container {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        #wallpaper-page main {
-            flex: 1;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
-        }
-        
+        /* ═══ Wallpaper Editor — 4-step wizard ═══
+           Reuses the global neo-brutalist tokens from css/style.css
+           (--paper, --surface, --ink, --green, --shadow-c, ...).
+           Structure: stepper → shared live preview → one step card at a
+           time, each ending with Back / Next. The old single-column wall
+           of controls (margins, lock, sliders for everything) is gone:
+           left/right margins and the lock button were removed entirely,
+           the vertical slider was replaced by dragging the text on the
+           preview (pointer events — mouse, touch and pen all work). */
+
+        :root { --ease: cubic-bezier(.4,0,.2,1); }
+
+        main { display: block; }
+
         .editor-container {
-            flex: 1;
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 14px 16px 28px;
+        }
+
+        /* ── Stepper: circles + progress ─────────────────────────────── */
+        .stepper {
             display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
+            align-items: center;
+            justify-content: center;
+            margin: 4px 0 10px;
         }
-        
-        /* Preview Section */
+        .step-dot {
+            width: 36px; height: 36px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: 3px solid var(--ink);
+            background: var(--surface);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--ink);
+            transition: background 0.2s var(--ease), color 0.2s var(--ease);
+        }
+        .step-dot.current {
+            background: var(--green);
+            color: var(--on-green);
+            box-shadow: 2px 2px 0 0 var(--shadow-c);
+        }
+        .step-dot.done { background: var(--green-tint); }
+        .step-dot.done .material-icons-round { font-size: 18px; }
+        .step-line {
+            width: 30px; height: 3px;
+            background: var(--ink);
+            opacity: 0.18;
+            transition: background 0.2s var(--ease), opacity 0.2s var(--ease);
+        }
+        .step-line.filled { background: var(--green); opacity: 1; }
+
+        .step-title {
+            text-align: center;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            letter-spacing: 0.02em;
+            margin-bottom: 12px;
+            color: var(--ink);
+        }
+
+        /* ── Shared live preview ─────────────────────────────────────── */
         .preview-section {
-            flex: 0 0 45%;
             position: relative;
-            background: var(--surface-color);
-            margin: 15px 20px 10px 20px;
-            border-radius: var(--radius-xl);
-            overflow: hidden;
-            box-shadow: var(--shadow-soft);
-            min-height: 200px;
-        }
-        
-        #canvas-preview {
             width: 100%;
-            height: 100%;
-            object-fit: contain;
-            background: linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%), 
-                        linear-gradient(-45deg, rgba(0,0,0,0.1) 25%, transparent 25%), 
-                        linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.1) 75%), 
-                        linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.1) 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            background-color: rgba(0,0,0,0.05);
-            display: block;
+            border: var(--border-w) solid var(--ink);
+            border-radius: var(--r-xl);
+            background: var(--surface-2);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
         }
-        
+        #canvas-preview {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: var(--surface-2);
+            /* Dragging the text must not scroll the page on touch devices */
+            touch-action: none;
+        }
+        #canvas-preview.can-drag { cursor: grab; }
+        #canvas-preview.dragging { cursor: grabbing; }
+
         .upload-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: var(--surface-color);
-            border: 2px dashed var(--surface-light);
-            border-radius: var(--radius-xl);
-            cursor: pointer;
-            transition: border-color 0.2s, background-color 0.2s, transform 0.2s var(--ease);
-        }
-        
-        .upload-overlay:hover, .upload-overlay.drag-active {
-            border-color: var(--accent-color);
-            background: var(--surface-light);
-        }
-        
-        .upload-icon {
-            font-size: 48px;
-            color: var(--accent-color);
-            margin-bottom: 15px;
-            opacity: 0.8;
-        }
-        
-        .upload-text {
-            color: var(--text-secondary);
+            gap: 6px;
             text-align: center;
-            padding: 0 20px;
-            font-size: 0.95rem;
+            cursor: pointer;
+            padding: 20px;
         }
-        
-        .upload-hint {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            opacity: 0.6;
-            margin-top: 8px;
-        }
-        
+        .upload-overlay.drag-active { background: var(--green-tint); }
+        .upload-icon { font-size: 44px; color: var(--green-text); }
+        .upload-text { font-family: var(--font-ui); font-weight: 700; color: var(--ink); }
+        .upload-hint { font-size: 0.8rem; color: var(--ink-soft); }
+
         .change-image-btn {
             position: absolute;
-            top: 15px;
-            right: 15px;
-            padding: 8px 16px;
-            font-size: 0.8rem;
-            cursor: pointer;
+            top: 10px; right: 10px;
             display: none;
             align-items: center;
             gap: 6px;
-            z-index: 10;
-            transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
-        }
-        
-        .change-image-btn.visible {
-            display: flex;
-        }
-        
-        .change-image-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .image-info {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            padding: 4px 8px;
-            font-size: 0.7rem;
-            display: none;
-        }
-        
-        .image-info.visible {
-            display: block;
-        }
-        
-        /* Controls Section */
-        .controls-section {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: contain;
-            padding: 10px 20px 40px 20px;
-        }
-        
-        .controls-section::-webkit-scrollbar {
-            display: none;
-        }
-        
-        .control-group {
-            margin-bottom: 16px;
-            background: var(--surface-color);
-            padding: 14px;
-            border-radius: var(--radius-md);
-            border: 1px solid rgba(18,41,26,0.08);
-            flex-shrink: 0;
-        }
-        
-        .control-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            display: block;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 700;
-        }
-        
-        /* Font Selector */
-        .font-selector {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-        
-        .font-option {
-            padding: 10px 4px;
-            background: var(--surface-light);
-            border: 2px solid transparent;
-            border-radius: var(--radius-md);
-            color: var(--text-secondary);
-            text-align: center;
-            cursor: pointer;
-            transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.12s var(--ease);
-            font-size: 0.8rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            tap-highlight-color: transparent;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .font-option.active {
-            border-color: var(--accent-color);
-            color: var(--accent-color);
-            background: rgba(129, 199, 132, 0.15);
-        }
-        
-        .font-option.playfair { font-family: 'Playfair Display', serif; font-size: 0.9rem; }
-        .font-option.lato { font-family: 'Lato', sans-serif; }
-        .font-option.caveat { font-family: 'Caveat', cursive; font-size: 1rem; }
-        .font-option.montserrat { font-family: 'Montserrat', sans-serif; font-weight: 600; }
-        .font-option.merriweather { font-family: 'Merriweather', serif; font-size: 0.75rem; }
-        .font-option.dancing { font-family: 'Dancing Script', cursive; font-size: 1rem; }
-        
-        /* Color Section */
-        .color-row {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-        
-        .color-swatch {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            cursor: pointer;
-            transition: transform 0.12s var(--ease), border-color 0.2s, box-shadow 0.2s;
-            position: relative;
-            box-shadow: 0 2px 6px rgba(18,41,26,0.2);
-            flex-shrink: 0;
-        }
-        
-        .color-swatch.active {
-            border-color: var(--accent-color);
-            transform: scale(1.1);
-            box-shadow: 0 0 0 2px var(--surface-color), 0 0 0 4px var(--accent-color);
-        }
-        
-        .color-swatch.white { background: #ffffff; }
-        .color-swatch.black { background: #000000; }
-        
-        .color-wheel {
-            background: conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .color-wheel::after {
-            content: 'colorize';
-            font-family: 'Material Icons Round';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 24px;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-            pointer-events: none;
-        }
-        
-        /* Color Picker Modal */
-        .color-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            height: 100dvh;
-            background: rgba(18, 41, 26, 0.45);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-            padding: 20px;
-        }
-        
-        .color-modal-overlay.open {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        
-        .color-modal-card {
-            background: var(--surface-color);
-            width: 100%;
-            max-width: 320px;
-            border-radius: var(--radius-xl);
-            padding: 25px;
-            transform: scale(0.9);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        
-        .color-modal-overlay.open .color-modal-card {
-            transform: scale(1);
-        }
-        
-        .color-modal-title {
-            font-size: 1.2rem;
-            color: var(--text-primary);
-            margin: 0 0 20px 0;
-            text-align: center;
-            font-family: var(--font-quote);
-        }
-        
-        .color-input-wrapper {
-            position: relative;
-            width: 100%;
-            height: 50px;
-            margin-bottom: 20px;
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            cursor: pointer;
-        }
-        
-        #color-picker-input {
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            padding: 0;
-            margin: 0;
-            cursor: pointer;
-            border: none;
-        }
-        
-        .color-input-label {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--surface-light);
-            color: var(--text-secondary);
-            font-weight: 600;
-            pointer-events: none;
-            border-radius: var(--radius-md);
-        }
-        
-        .recent-colors {
-            margin-bottom: 20px;
-        }
-        
-        .recent-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-            display: block;
-        }
-        
-        .recent-grid {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .recent-color {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid rgba(18,41,26,0.25);
-            transition: transform 0.2s;
-            box-shadow: 0 2px 4px rgba(18,41,26,0.15);
-        }
-        
-        .recent-color:active {
-            transform: scale(0.9);
-        }
-        
-        .recent-color.empty {
-            background: var(--surface-light);
-            border: 2px dashed var(--text-secondary);
-            opacity: 0.3;
-        }
-        
-        .close-color-modal {
-            width: 100%;
-            padding: 14px;
-            background: var(--surface-light);
-            border: none;
-            border-radius: var(--radius-md);
-            color: var(--text-primary);
-            font-weight: 600;
-            cursor: pointer;
+            padding: 7px 12px;
+            background: var(--surface);
+            border: 2px solid var(--ink);
+            border-radius: var(--r-pill);
             font-family: var(--font-ui);
-            font-size: 1rem;
-            touch-action: manipulation;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--ink);
+            box-shadow: 2px 2px 0 0 var(--shadow-c);
+            cursor: pointer;
         }
-        
-        /* Sliders */
-        .slider-container {
-            margin-bottom: 8px;
+        .change-image-btn.visible { display: inline-flex; }
+        .change-image-btn .material-icons-round { font-size: 16px; }
+
+        /* ── Step cards ──────────────────────────────────────────────── */
+        .wstep { display: none; }
+        .wstep.active { display: block; animation: stepIn 0.22s var(--ease); }
+        @keyframes stepIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
-        
+
+        .step-card {
+            border: var(--border-w) solid var(--ink);
+            border-radius: var(--r-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow-md);
+            padding: 14px;
+            margin-top: 14px;
+        }
+
+        .control-label {
+            display: block;
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--ink-soft);
+            margin: 12px 2px 6px;
+        }
+        .control-group:first-child .control-label { margin-top: 0; }
+
+        /* Chip rows: ratios, presets, fonts, align, shadow, backdrop */
+        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            padding: 8px 14px;
+            background: var(--surface);
+            border: 2px solid var(--ink);
+            border-radius: var(--r-pill);
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--ink);
+            cursor: pointer;
+            box-shadow: 2px 2px 0 0 var(--shadow-c);
+            transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease),
+                        background 0.12s var(--ease);
+        }
+        .chip:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 0 var(--shadow-c); }
+        .chip:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--shadow-c); }
+        .chip.active { background: var(--green); color: var(--on-green); }
+
+        .font-option.playfair   { font-family: 'Playfair Display', serif; }
+        .font-option.lato       { font-family: 'Lato', sans-serif; }
+        .font-option.caveat     { font-family: 'Caveat', cursive; font-size: 1rem; }
+        .font-option.montserrat { font-family: 'Montserrat', sans-serif; }
+        .font-option.merriweather { font-family: 'Merriweather', serif; font-size: 0.78rem; }
+        .font-option.dancing    { font-family: 'Dancing Script', cursive; font-size: 1rem; }
+
+        /* Color swatches */
+        .color-swatch {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--ink);
+            cursor: pointer;
+            box-shadow: 2px 2px 0 0 var(--shadow-c);
+            transition: transform 0.12s var(--ease);
+        }
+        .color-swatch:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--shadow-c); }
+        .color-swatch.active { outline: 3px solid var(--green); outline-offset: 2px; }
+        .color-swatch.white  { background: #ffffff; }
+        .color-swatch.black  { background: #000000; }
+        .color-swatch.color-wheel {
+            background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Size slider */
         .slider-labels {
             display: flex;
             justify-content: space-between;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
+            font-family: var(--font-ui);
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--ink-soft);
             margin-bottom: 4px;
         }
-        
         input[type="range"] {
             -webkit-appearance: none;
+            appearance: none;
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: var(--surface-light);
+            height: 10px;
+            border-radius: var(--r-pill);
+            background: var(--surface-2);
+            border: 2px solid var(--ink);
             outline: none;
-            margin: 6px 0;
         }
-        
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 26px; height: 26px;
             border-radius: 50%;
-            background: var(--accent-color);
+            background: var(--green);
+            border: 3px solid var(--ink);
             cursor: pointer;
-            box-shadow: 0 2px 6px rgba(18,41,26,0.25);
-            border: 2px solid var(--bg-color);
-            transition: transform 0.1s;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb:active {
-            transform: scale(1.2);
-        }
-        
-        /* Reversed slider for Right Margin */
-        input[type="range"].reversed {
-            direction: rtl;
-        }
-        
-        /* Lock Button */
-        .lock-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: -5px 0 10px 0;
-        }
-        
-        .lock-btn {
-            background: rgba(129, 199, 132, 0.2);
-            border: 2px solid var(--accent-color);
-            color: var(--accent-color);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.12s var(--ease), background-color 0.2s, color 0.2s;
-            font-size: 18px;
-        }
-        
-        .lock-btn.unlocked {
-            background: var(--surface-light);
-            border-color: var(--text-secondary);
-            color: var(--text-secondary);
-            opacity: 0.5;
-        }
-        
-        .lock-btn:active {
-            transform: scale(0.9);
-        }
-        
-        /* Alignment */
-        .alignment-row {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .align-btn {
-            flex: 1;
-            height: 44px;
-            background: var(--surface-light);
-            border: 2px solid transparent;
-            border-radius: var(--radius-md);
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s, color 0.2s, transform 0.12s var(--ease);
-            touch-action: manipulation;
-        }
-        
-        .align-btn.active {
-            border-color: var(--accent-color);
-            color: var(--accent-color);
-            background: rgba(129, 199, 132, 0.15);
-        }
-        
-        .align-btn .material-icons-round {
-            font-size: 22px;
-        }
-        
-        /* Aspect Ratio Buttons */
-        .ratio-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        
-        .ratio-btn {
-            background: var(--surface-light);
-            border: 2px solid transparent;
-            border-radius: var(--radius-md);
-            color: var(--text-secondary);
-            padding: 12px 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-            font-family: var(--font-ui);
-            touch-action: manipulation;
-        }
-        
-        .ratio-btn.active {
-            border-color: var(--accent-color);
-            color: var(--accent-color);
-            background: rgba(129, 199, 132, 0.15);
-        }
-        
-        .ratio-hint {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            margin-top: 8px;
-            padding-left: 4px;
-        }
-        
-        /* Download Button */
-        .download-btn {
-            background: var(--accent-color);
-            color: var(--bg-color);
-            border: none;
-            padding: 16px 28px;
-            border-radius: 50px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-            max-width: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 20px auto 30px auto;
-            transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
-            text-transform: uppercase;
-            letter-spacing: 0;
-            position: relative;
-            overflow: hidden;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .download-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transform: translateX(-100%);
-            pointer-events: none;
-        }
-        
-        .download-btn:active {
-            transform: translateY(2px) scale(0.98);
-            box-shadow: 1px 1px 0 0 var(--shadow-c);
-        }
-        
-        .download-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            background: var(--surface-light);
-            color: var(--text-secondary);
-            box-shadow: none;
-        }
-        
-        .download-btn .material-icons-round {
-            font-size: 20px;
-        }
-        
-        #wallpaper-page .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            z-index: 2000;
-        }
-        
-        #wallpaper-page .bottom-nav {
-            display: none;
-        }
-        
-        @media (min-width: 768px) {
-            .preview-section {
-                flex: 0 0 50%;
-            }
-            
-            .controls-section {
-                padding-bottom: 20px;
-            }
-            
-            .download-btn {
-                width: auto;
-                min-width: 250px;
-            }
-        }
-        
-        @media (max-height: 600px) {
-            .preview-section {
-                flex: 0 0 40%;
-                margin: 10px 15px 5px 15px;
-            }
-            
-            .control-group {
-                padding: 10px;
-                margin-bottom: 8px;
-            }
-            
-            .controls-section {
-                padding: 5px 15px 20px 15px;
-            }
-        }
-        /* ── Neo-brutal overlay (v3, light-only) — harmonises editor chrome with the shared tokens ── */
-        html, body { overflow-x: clip; }
-
-        .preview-section,
-        .editor-container .control-group,
-        .color-modal-card {
-            border: var(--border-w) solid var(--ink);
-            border-radius: var(--r-xl);
-            box-shadow: var(--shadow-md);
-            background: var(--surface);
-        }
-
-        .upload-overlay {
-            border: 2px dashed var(--ink);
-            background: var(--surface);
-            border-radius: var(--r-xl);
-        }
-        .upload-overlay:hover,
-        .upload-overlay.drag-active {
-            background: var(--surface-2);
-            border-color: var(--ink);
-        }
-
-        .change-image-btn,
-        .lock-btn,
-        .ratio-btn,
-        .font-option,
-        .align-btn,
-        .close-color-modal {
-            border: 2px solid var(--ink);
-            border-radius: var(--r-md);
-            background: var(--surface-2);
-            color: var(--ink);
             box-shadow: 2px 2px 0 0 var(--shadow-c);
-            transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease);
         }
-
-        .change-image-btn:hover,
-        .ratio-btn:hover,
-        .font-option:hover,
-        .align-btn:hover,
-        .close-color-modal:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 0 var(--shadow-c); }
-
-        .ratio-btn.active,
-        .font-option.active,
-        .align-btn.active {
+        input[type="range"]::-moz-range-thumb {
+            width: 22px; height: 22px;
+            border-radius: 50%;
             background: var(--green);
-            color: var(--on-green);
-            border-color: var(--ink);
+            border: 3px solid var(--ink);
+            cursor: pointer;
         }
 
-        .download-btn {
+        .drag-hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--ink-soft);
+            text-align: center;
+        }
+        .drag-hint .material-icons-round { font-size: 16px; }
+
+        /* Step navigation */
+        .step-nav { display: flex; gap: 10px; margin-top: 16px; }
+        .nav-btn {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 13px 14px;
             border: var(--border-w) solid var(--ink);
             border-radius: var(--r-md);
-            background: var(--green);
-            color: var(--on-green);
+            font-family: var(--font-ui);
             font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
             box-shadow: var(--shadow-sm);
-            transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+            transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease);
+            text-decoration: none;
+        }
+        .nav-btn:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 0 var(--shadow-c); }
+        .nav-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none; }
+        .nav-btn:disabled { opacity: 0.45; box-shadow: none; cursor: not-allowed; }
+        .nav-btn .material-icons-round { font-size: 20px; }
+        .nav-btn.primary { background: var(--green); color: var(--on-green); }
+        .nav-btn.secondary { background: var(--surface); color: var(--ink); }
+
+        .export-summary {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--ink-soft);
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
-        .download-btn:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 0 var(--shadow-c); }
-        .download-btn:disabled { opacity: 0.45; box-shadow: none; cursor: not-allowed; }
-
-        .image-info,
-        .ratio-hint {
-            background: var(--gold-tint);
+        /* Color picker modal (kept from the previous version) */
+        .color-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(18, 41, 26, 0.45);
+            display: none;
+            align-items: center; justify-content: center;
+            z-index: 300;
+            padding: 20px;
+        }
+        .color-modal-overlay.open { display: flex; }
+        .color-modal-card {
+            width: 100%;
+            max-width: 340px;
+            background: var(--surface);
+            border: var(--border-w) solid var(--ink);
+            border-radius: var(--r-xl);
+            box-shadow: var(--shadow-lg);
+            padding: 18px;
+        }
+        .color-modal-title {
+            font-family: var(--font-display);
+            margin: 0 0 14px;
+            text-align: center;
+        }
+        .color-input-wrapper {
             border: 2px solid var(--ink);
             border-radius: var(--r-md);
-            color: var(--ink);
+            overflow: hidden;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        #color-picker-input { width: 100%; height: 64px; cursor: pointer; border: none; display: block; }
+        .color-input-label {
+            padding: 10px;
+            text-align: center;
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--on-green);
+            background: var(--green-tint);
+        }
+        .recent-label {
+            display: block;
+            font-family: var(--font-ui);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--ink-soft);
+            margin-bottom: 6px;
+        }
+        .recent-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .recent-color {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--ink);
+            cursor: pointer;
+        }
+        .recent-color.empty { background: var(--surface-2); cursor: default; }
+        .close-color-modal {
+            width: 100%;
+            padding: 12px;
+            background: var(--green);
+            color: var(--on-green);
+            border: var(--border-w) solid var(--ink);
+            border-radius: var(--r-md);
+            font-family: var(--font-ui);
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
         }
 
-        @media (prefers-reduced-motion: reduce) {
-            * { transition: none !important; animation: none !important; }
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: auto;              /* neutralise the global app toast's top (it would stretch this one) */
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--ink);
+            color: #fff;
+            padding: 12px 22px;
+            border-radius: var(--r-pill);
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 0.9rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+            z-index: 400;
+            max-width: 90%;
+            text-align: center;
         }
-
-        /* v12 a11y: font/color/align controls are real <button>s now — strip UA chrome */
-        .font-option, .color-swatch, .align-btn {
-            font-family: inherit;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-        .color-swatch { padding: 0; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body id="wallpaper-page">
@@ -778,129 +419,169 @@
 
         <main>
             <div class="editor-container">
-                <!-- Top: Preview -->
+                <!-- Stepper: filled circles show where you are and what is left -->
+                <div class="stepper" id="stepper" aria-hidden="true">
+                    <div class="step-dot" data-dot="1">1</div>
+                    <div class="step-line" data-line="1"></div>
+                    <div class="step-dot" data-dot="2">2</div>
+                    <div class="step-line" data-line="2"></div>
+                    <div class="step-dot" data-dot="3">3</div>
+                    <div class="step-line" data-line="3"></div>
+                    <div class="step-dot" data-dot="4">4</div>
+                </div>
+                <div class="step-title" id="step-title" data-i18n="wp_step1">Picture</div>
+
+                <!-- Shared live preview (canvas) — the wallpaper being edited -->
                 <div class="preview-section" id="drop-zone">
                     <input type="file" id="image-input" accept="image/*" style="display: none;">
-                    <canvas id="canvas-preview"></canvas>
+                    <canvas id="canvas-preview" width="1080" height="1440" tabindex="0" role="slider"
+                            aria-label="Text vertical position" aria-orientation="vertical"
+                            aria-valuemin="5" aria-valuemax="95" aria-valuenow="50"></canvas>
                     <div class="upload-overlay" id="upload-prompt" onclick="document.getElementById('image-input').click()">
-                        <span class="material-icons-round upload-icon">wallpaper</span>
+                        <span class="material-icons-round upload-icon" aria-hidden="true">wallpaper</span>
                         <div class="upload-text" data-i18n="wp_upload">Tap to upload an image</div>
                         <div class="upload-hint" data-i18n="wp_drag">or drag and drop</div>
                     </div>
                     <button class="change-image-btn" id="change-btn" onclick="document.getElementById('image-input').click()">
-                        <span class="material-icons-round" style="font-size: 18px;">edit</span>
+                        <span class="material-icons-round" aria-hidden="true">edit</span>
                         <span data-i18n="wp_change">Change</span>
                     </button>
-                    <div class="image-info" id="image-info"></div>
                 </div>
 
-                <!-- Bottom: Controls -->
-                <div class="controls-section">
-                    <!-- 0. Aspect Ratio -->
-                    <div class="control-group" style="margin-bottom: 12px;">
+                <!-- ── STEP 1: picture + aspect ratio ──────────────────── -->
+                <section class="wstep active" id="wstep-1">
+                    <div class="step-card">
                         <label class="control-label" data-i18n="wp_ratio">Aspect Ratio</label>
-                        <div class="ratio-row">
-                            <button class="ratio-btn active" data-ratio="original" onclick="changeRatio('original', this)" data-i18n="wp_ratio_original">Original</button>
-                            <button class="ratio-btn" data-ratio="9:16" onclick="changeRatio('9:16', this)" data-i18n="wp_ratio_story">9:16 Story</button>
-                            <button class="ratio-btn" data-ratio="9:19.5" onclick="changeRatio('9:19.5', this)" data-i18n="wp_ratio_phone">9:19.5 Phone</button>
-                            <button class="ratio-btn" data-ratio="16:9" onclick="changeRatio('16:9', this)" data-i18n="wp_ratio_desktop">16:9 Desktop</button>
+                        <div class="chip-row" id="ratio-row">
+                            <button class="chip ratio-btn active" data-ratio="original" onclick="changeRatio('original', this)" data-i18n="wp_ratio_original">Original</button>
+                            <button class="chip ratio-btn" data-ratio="phone" onclick="changeRatio('phone', this)" id="ratio-phone-btn">Phone</button>
+                            <button class="chip ratio-btn" data-ratio="desktop" onclick="changeRatio('desktop', this)" data-i18n="wp_ratio_desktop">Computer</button>
+                            <button class="chip ratio-btn" data-ratio="3:4" onclick="changeRatio('3:4', this)">3:4</button>
                         </div>
-                        <div class="ratio-hint" id="ratio-hint">Keep the original aspect ratio of the uploaded image.</div>
+                        <div class="step-nav">
+                            <button class="nav-btn primary" id="btn-next-1" onclick="gotoStep(2)" disabled>
+                                <span data-i18n="wp_next">Next</span>
+                                <span class="material-icons-round" aria-hidden="true">arrow_forward</span>
+                            </button>
+                        </div>
                     </div>
+                </section>
 
-                    <!-- 1. Font Size -->
-                    <div class="control-group" style="margin-bottom: 12px;">
+                <!-- ── STEP 2: typography (presets, font, size, align, drag) ── -->
+                <section class="wstep" id="wstep-2">
+                    <div class="step-card">
+                        <label class="control-label" data-i18n="wp_presets">Quick Looks</label>
+                        <div class="chip-row">
+                            <button class="chip preset-btn" data-preset="clean" onclick="applyPreset('clean', this)" data-i18n="wp_p_clean">Clean</button>
+                            <button class="chip preset-btn" data-preset="elegant" onclick="applyPreset('elegant', this)" data-i18n="wp_p_elegant">Elegant</button>
+                            <button class="chip preset-btn" data-preset="handwriting" onclick="applyPreset('handwriting', this)" data-i18n="wp_p_script">Handwriting</button>
+                            <button class="chip preset-btn" data-preset="modern" onclick="applyPreset('modern', this)" data-i18n="wp_p_modern">Modern</button>
+                        </div>
+
+                        <label class="control-label" data-i18n="wp_font">Font Style</label>
+                        <div class="chip-row">
+                            <button class="chip font-option playfair active" data-font="Playfair Display" onclick="changeFont('Playfair Display', this)" data-i18n="wp_f_classic">Classic</button>
+                            <button class="chip font-option lato" data-font="Lato" onclick="changeFont('Lato', this)" data-i18n="wp_f_clean">Clean</button>
+                            <button class="chip font-option caveat" data-font="Caveat" onclick="changeFont('Caveat', this)" data-i18n="wp_f_relaxed">Relaxed</button>
+                            <button class="chip font-option montserrat" data-font="Montserrat" onclick="changeFont('Montserrat', this)" data-i18n="wp_f_modern">Modern</button>
+                            <button class="chip font-option merriweather" data-font="Merriweather" onclick="changeFont('Merriweather', this)" data-i18n="wp_f_elegant">Elegant</button>
+                            <button class="chip font-option dancing" data-font="Dancing Script" onclick="changeFont('Dancing Script', this)" data-i18n="wp_f_script">Handwriting</button>
+                        </div>
+
+                        <label class="control-label" data-i18n="wp_size">Text Size</label>
                         <div class="slider-labels">
                             <span data-i18n="wp_small">Small</span>
-                            <span id="size-val">Medium</span>
                             <span data-i18n="wp_large">Large</span>
                         </div>
-                        <input type="range" id="font-size" min="20" max="80" value="40">
-                    </div>
+                        <input type="range" id="font-size" min="20" max="80" value="40" aria-label="Text size">
 
-                    <!-- 2. Text Alignment -->
-                    <div class="control-group" style="margin-bottom: 12px;">
                         <label class="control-label" data-i18n="wp_align">Text Alignment</label>
-                        <div class="alignment-row">
-                            <button class="align-btn" onclick="changeAlign('left', this)" title="Left" data-i18n-title="wp_left">
+                        <div class="chip-row">
+                            <button class="chip align-btn" data-align="left" onclick="changeAlign('left', this)" title="Left" data-i18n-title="wp_left">
                                 <span class="material-icons-round" aria-hidden="true">format_align_left</span>
                             </button>
-                            <button class="align-btn active" onclick="changeAlign('center', this)" title="Center" data-i18n-title="wp_center">
+                            <button class="chip align-btn active" data-align="center" onclick="changeAlign('center', this)" title="Center" data-i18n-title="wp_center">
                                 <span class="material-icons-round" aria-hidden="true">format_align_center</span>
                             </button>
-                            <button class="align-btn" onclick="changeAlign('right', this)" title="Right" data-i18n-title="wp_right">
+                            <button class="chip align-btn" data-align="right" onclick="changeAlign('right', this)" title="Right" data-i18n-title="wp_right">
                                 <span class="material-icons-round" aria-hidden="true">format_align_right</span>
                             </button>
                         </div>
-                    </div>
 
-                    <!-- 3. Vertical Position -->
-                    <div class="control-group" style="margin-bottom: 12px;">
-                        <label class="control-label" data-i18n="wp_vertical">Vertical Position</label>
-                        <div class="slider-labels">
-                            <span data-i18n="wp_top">Top</span>
-                            <span id="top-val">50%</span>
-                            <span data-i18n="wp_bottom">Bottom</span>
+                        <div class="drag-hint" id="drag-hint">
+                            <span class="material-icons-round" aria-hidden="true">open_with</span>
+                            <span data-i18n="wp_drag_hint">Drag the text on the picture to move it up or down</span>
                         </div>
-                        <input type="range" id="top-offset" min="5" max="95" value="50">
-                    </div>
 
-                    <!-- 4. Left & Right Margins -->
-                    <div class="control-group" style="margin-bottom: 12px;">
-                        <div class="lock-container">
-                            <button class="lock-btn" id="lock-btn" onclick="toggleLock()" title="Lock margins together" data-i18n-title="wp_lock">
-                                <span class="material-icons-round" id="lock-icon">lock</span>
+                        <div class="step-nav">
+                            <button class="nav-btn secondary" onclick="gotoStep(1)">
+                                <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+                                <span data-i18n="wp_back">Back</span>
+                            </button>
+                            <button class="nav-btn primary" onclick="gotoStep(3)">
+                                <span data-i18n="wp_next">Next</span>
+                                <span class="material-icons-round" aria-hidden="true">arrow_forward</span>
                             </button>
                         </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div>
-                                <div class="slider-labels">
-                                    <span data-i18n="wp_left_margin">Left margin</span>
-                                    <span id="left-val">10%</span>
-                                </div>
-                                <input type="range" id="left-offset" min="0" max="40" value="10">
-                            </div>
-                            <div>
-                                <div class="slider-labels">
-                                    <span data-i18n="wp_right_margin">Right margin</span>
-                                    <span id="right-val">10%</span>
-                                </div>
-                                <!-- Reversed: 0 on right, 40 on left visually -->
-                                <input type="range" id="right-offset" class="reversed" min="0" max="40" value="30">
-                            </div>
-                        </div>
                     </div>
+                </section>
 
-                    <!-- 5. Font Selection -->
-                    <div class="control-group" style="margin-bottom: 12px;">
-                        <label class="control-label" data-i18n="wp_font">Font Style</label>
-                        <div class="font-selector">
-                            <button class="font-option playfair active" type="button" aria-pressed="true" onclick="changeFont('Playfair Display', this)" data-i18n="wp_f_classic">Classic</button>
-                            <button class="font-option lato" type="button" aria-pressed="false" onclick="changeFont('Lato', this)" data-i18n="wp_f_clean">Clean</button>
-                            <button class="font-option caveat" type="button" aria-pressed="false" onclick="changeFont('Caveat', this)" data-i18n="wp_f_relaxed">Relaxed</button>
-                            <button class="font-option montserrat" type="button" aria-pressed="false" onclick="changeFont('Montserrat', this)" data-i18n="wp_f_modern">Modern</button>
-                            <button class="font-option merriweather" type="button" aria-pressed="false" onclick="changeFont('Merriweather', this)" data-i18n="wp_f_elegant">Elegant</button>
-                            <button class="font-option dancing" type="button" aria-pressed="false" onclick="changeFont('Dancing Script', this)" data-i18n="wp_f_script">Handwriting</button>
-                        </div>
-                    </div>
-
-                    <!-- 6. Color Selection (Last) -->
-                    <div class="control-group" style="margin-bottom: 16px;">
+                <!-- ── STEP 3: color, shadow, backdrop ─────────────────── -->
+                <section class="wstep" id="wstep-3">
+                    <div class="step-card">
                         <label class="control-label" data-i18n="wp_color">Text Color</label>
-                        <div class="color-row">
-                            <button class="color-swatch white active" type="button" aria-pressed="true" onclick="changeColor('#ffffff', this)" title="White" aria-label="White" data-i18n-title="wp_c_white"></button>
-                            <button class="color-swatch black" type="button" aria-pressed="false" onclick="changeColor('#000000', this)" title="Black" aria-label="Black" data-i18n-title="wp_c_black"></button>
+                        <div class="chip-row">
+                            <button class="color-swatch white" type="button" aria-pressed="false" onclick="changeColorMode('white', this)" title="White" aria-label="White" data-i18n-title="wp_c_white"></button>
+                            <button class="color-swatch black" type="button" aria-pressed="false" onclick="changeColorMode('black', this)" title="Black" aria-label="Black" data-i18n-title="wp_c_black"></button>
                             <button class="color-swatch color-wheel" type="button" aria-pressed="false" onclick="openColorPicker()" title="Custom color" aria-label="Custom color" data-i18n-title="wp_c_custom"></button>
                         </div>
-                    </div>
 
-                    <!-- Download Button -->
-                    <button class="download-btn" id="download-btn" onclick="downloadWallpaper()" disabled>
-                        <span class="material-icons-round" aria-hidden="true">download</span>
-                        <span data-i18n="wp_save">Save Wallpaper</span>
-                    </button>
-                </div>
+                        <label class="control-label" data-i18n="wp_shadow">Text Shadow</label>
+                        <div class="chip-row" id="shadow-row">
+                            <button class="chip shadow-btn active" data-shadow="dark" onclick="changeShadow('dark', this)" data-i18n="wp_shadow_dark">Dark</button>
+                            <button class="chip shadow-btn" data-shadow="light" onclick="changeShadow('light', this)" data-i18n="wp_shadow_light">Light</button>
+                        </div>
+
+                        <label class="control-label" data-i18n="wp_backdrop">Backdrop Behind Text</label>
+                        <div class="chip-row" id="backdrop-row">
+                            <button class="chip backdrop-btn active" data-backdrop="none" onclick="changeBackdrop('none', this)" data-i18n="wp_bd_none">None</button>
+                            <button class="chip backdrop-btn" data-backdrop="dim" onclick="changeBackdrop('dim', this)" data-i18n="wp_bd_dim">Dim</button>
+                            <button class="chip backdrop-btn" data-backdrop="blur" onclick="changeBackdrop('blur', this)" data-i18n="wp_bd_blur">Blur</button>
+                        </div>
+
+                        <div class="step-nav">
+                            <button class="nav-btn secondary" onclick="gotoStep(2)">
+                                <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+                                <span data-i18n="wp_back">Back</span>
+                            </button>
+                            <button class="nav-btn primary" onclick="gotoStep(4)">
+                                <span data-i18n="wp_next">Next</span>
+                                <span class="material-icons-round" aria-hidden="true">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── STEP 4: save / share ────────────────────────────── -->
+                <section class="wstep" id="wstep-4">
+                    <div class="step-card">
+                        <div class="export-summary" id="export-summary"></div>
+                        <div class="step-nav">
+                            <button class="nav-btn secondary" onclick="gotoStep(3)">
+                                <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+                                <span data-i18n="wp_back">Back</span>
+                            </button>
+                            <button class="nav-btn primary" id="download-btn" onclick="downloadWallpaper()" disabled>
+                                <span class="material-icons-round" aria-hidden="true">download</span>
+                                <span data-i18n="wp_save">Save Wallpaper</span>
+                            </button>
+                            <button class="nav-btn primary" id="share-btn" onclick="shareWallpaper()" style="display: none;">
+                                <span class="material-icons-round" aria-hidden="true">share</span>
+                                <span data-i18n="wp_share">Share</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -909,82 +590,88 @@
     <div id="color-modal" class="color-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="color-modal-title" onclick="closeColorPicker(event)">
         <div class="color-modal-card" onclick="event.stopPropagation()">
             <h3 class="color-modal-title" id="color-modal-title" data-i18n="wp_pick">Pick a color</h3>
-            
+
             <div class="color-input-wrapper" onclick="document.getElementById('color-picker-input').click()">
                 <input type="color" id="color-picker-input" onchange="handleColorPick(this.value)">
                 <div class="color-input-label" id="current-color-display" style="background: #81C784;" data-i18n="wp_choose">
                     Tap to choose a color
                 </div>
             </div>
-            
+
             <div class="recent-colors">
                 <span class="recent-label" data-i18n="wp_recent">Recent colors</span>
-                <div class="recent-grid" id="recent-colors-grid">
-                    <div class="recent-color empty"></div>
-                    <div class="recent-color empty"></div>
-                    <div class="recent-color empty"></div>
-                    <div class="recent-color empty"></div>
-                    <div class="recent-color empty"></div>
-                    <div class="recent-color empty"></div>
-                </div>
+                <div class="recent-grid" id="recent-colors-grid"></div>
             </div>
-            
+
             <button class="close-color-modal" onclick="closeColorPicker()" data-i18n="wp_done">Done</button>
         </div>
     </div>
 
     <!-- Toast -->
     <div id="toast" class="toast" role="status" aria-live="polite">
-        <span class="material-icons-round toast-icon">check_circle</span>
         <span id="toast-message">Wallpaper saved!</span>
     </div>
 
     <script>
+        // ═══════════════════════════════════════════════════════════════
+        // CREDO Wallpaper Editor — 4-step wizard
+        //  1 Picture (upload + aspect ratio)   2 Text (presets/typography)
+        //  3 Color (color/shadow/backdrop)     4 Save / share
+        // Left/right margins and their lock were REMOVED by design; the
+        // vertical position is set by dragging the text on the preview.
+        // Last-used look is remembered in localStorage (wpEditorState);
+        // readability (color+shadow) is auto-picked per image from the
+        // brightness under the text until the user overrides it.
+        // ═══════════════════════════════════════════════════════════════
+
         // Fallback Bible passages (same ids as data/bsb.bible.json)
         const fallbackQuotes = [
             {"id": 162, "text": "“Do not judge, or you will be judged.", "author": "Matthew 7:1"},
             {"id": 1, "text": "So they hurried off and found Mary and Joseph and the Baby, who was lying in the manger.", "author": "Luke 2:16"},
             {"id": 79, "text": "Jesus said to her, “I am the resurrection and the life. Whoever believes in Me will live, even though he dies.", "author": "John 11:25"}
         ];
-        
+
         let currentQuotes = [];
         let currentQuote = null;
-        // English-only app
         let currentLang = 'en';
         let recentColors = JSON.parse(localStorage.getItem('recentColors') || '[]');
-        let marginsLocked = true;
-        
-        // === WALLPAPER UI TEXTS (English) ===
+
+        // === WALLPAPER UI TEXTS (English — matches the app's en-only UI) ===
         const WPI18N = {
             en: {
                 wp_title: 'Wallpaper Editor',
                 wp_upload: 'Tap to upload an image', wp_drag: 'or drag and drop', wp_change: 'Change',
+                wp_step1: '1 · Picture', wp_step2: '2 · Text & Layout', wp_step3: '3 · Color & Readability', wp_step4: '4 · Save',
+                wp_next: 'Next', wp_back: 'Back',
                 wp_ratio: 'Aspect Ratio',
-                wp_ratio_original: 'Original', wp_ratio_story: '9:16 Story', wp_ratio_phone: '9:19.5 Phone', wp_ratio_desktop: '16:9 Desktop',
-                hint_original: 'Keep the original aspect ratio of the uploaded image.',
-                hint_export: 'Export: {w} \u00D7 {h} px (image is center-cropped).',
-                wp_small: 'Small', wp_medium: 'Medium', wp_large: 'Large',
+                wp_ratio_original: 'Original', wp_ratio_desktop: 'Computer',
+                wp_phone: 'Phone',
+                wp_size: 'Text Size',
+                wp_small: 'Small', wp_large: 'Large',
                 wp_align: 'Text Alignment', wp_left: 'Left', wp_center: 'Center', wp_right: 'Right',
-                wp_vertical: 'Vertical Position', wp_top: 'Top', wp_bottom: 'Bottom',
-                wp_lock: 'Lock margins together', wp_left_margin: 'Left margin', wp_right_margin: 'Right margin',
+                wp_presets: 'Quick Looks',
+                wp_p_clean: 'Clean', wp_p_elegant: 'Elegant', wp_p_script: 'Handwriting', wp_p_modern: 'Modern',
+                wp_drag_hint: 'Drag the text on the picture to move it up or down',
                 wp_font: 'Font Style',
                 wp_f_classic: 'Classic', wp_f_clean: 'Clean', wp_f_relaxed: 'Relaxed', wp_f_modern: 'Modern', wp_f_elegant: 'Elegant', wp_f_script: 'Handwriting',
                 wp_color: 'Text Color', wp_c_white: 'White', wp_c_black: 'Black', wp_c_custom: 'Custom color',
-                wp_save: 'Save Wallpaper',
+                wp_shadow: 'Text Shadow', wp_shadow_dark: 'Dark', wp_shadow_light: 'Light',
+                wp_backdrop: 'Backdrop Behind Text', wp_bd_none: 'None', wp_bd_dim: 'Dim', wp_bd_blur: 'Blur',
+                wp_save: 'Save Wallpaper', wp_share: 'Share',
                 wp_pick: 'Pick a color', wp_choose: 'Tap to choose a color', wp_recent: 'Recent colors', wp_done: 'Done',
                 toast_saved_default: 'Wallpaper saved!',
                 toast_image_loaded: 'Image loaded ({w}\u00D7{h})',
                 toast_saved: 'Saved: {w}\u00D7{h}px',
+                toast_shared: 'Shared!',
                 toast_color: 'Color updated'
             }
         };
-        
+
         function wpT(key) {
             const dict = WPI18N[currentLang] || WPI18N.en;
             return dict[key] || WPI18N.en[key] || key;
         }
-        
-        // Apply the English texts to all static wallpaper UI elements
+
         function applyWallpaperLanguage() {
             document.title = 'Wallpaper Editor – Credo';
             document.documentElement.lang = 'en';
@@ -996,87 +683,100 @@
                 const key = el.getAttribute('data-i18n-title');
                 if (wpT(key) !== key) el.setAttribute('title', wpT(key));
             });
-            // Default slider value label (size-val is dynamic afterwards)
-            const sizeVal = document.getElementById('size-val');
-            if (sizeVal) sizeVal.textContent = wpT('wp_medium');
-            // Ratio hint matches the current mode
-            updateRatioHint();
         }
-        
-        function updateRatioHint() {
-            const hint = document.getElementById('ratio-hint');
-            if (!hint) return;
-            if (ratioMode === 'original') {
-                hint.textContent = wpT('hint_original');
-            } else {
-                const p = RATIO_PRESETS[ratioMode];
-                hint.textContent = wpT('hint_export').replace('{w}', p.w).replace('{h}', p.h);
-            }
-        }
-        
-        // Store original image and dimensions
-        let currentImage = null;
-        let originalImage = null;
-        let originalWidth = 0;
-        let originalHeight = 0;
-        
-        let settings = {
-            text: '',
-            font: 'Playfair Display',
-            color: '#ffffff',
-            align: 'center',
-            top: 50,
-            leftOffset: 10,
-            rightOffset: 10,
-            fontSize: 40,
-            shadow: true
-        };
 
+        // ── State ─────────────────────────────────────────────────────
         const canvas = document.getElementById('canvas-preview');
         const ctx = canvas.getContext('2d');
-        
-        // Aspect ratio presets: null = keep original image ratio
-        const RATIO_PRESETS = {
-            'original': null,
-            '9:16': { w: 1080, h: 1920 },
-            '9:19.5': { w: 1080, h: 2340 },
-            '16:9': { w: 1920, h: 1080 }
+
+        let currentImage = null;      // Image object currently displayed
+        let originalImage = null;     // same (kept name for export logic)
+        let originalWidth = 0;
+        let originalHeight = 0;
+        let colorTouched = false;     // user picked color/shadow for THIS image → auto-contrast stands down
+        let dragHintDone = localStorage.getItem('wpDragHintSeen') === '1';
+
+        // Detected device aspect (max side / min side) for the Phone chip.
+        let deviceRatio = 19.5 / 9;
+        try {
+            const sw = Math.max(screen.width || 0, screen.height || 0);
+            const sh = Math.min(screen.width || 0, screen.height || 0);
+            if (sw > 0 && sh > 0) deviceRatio = sw / sh;
+        } catch (e) { /* keep default */ }
+
+        function phoneExportSize() {
+            // 1080 px wide, height follows the device aspect (cap 2400)
+            return { w: 1080, h: Math.min(2400, Math.round(1080 * deviceRatio)) };
+        }
+        function ratioSpec(mode) {
+            if (mode === 'original') return { w: originalWidth, h: originalHeight };
+            if (mode === 'phone') return phoneExportSize();
+            if (mode === 'desktop') return { w: 1920, h: 1080 };
+            return { w: 1080, h: 1440 };   // '3:4'
+        }
+
+        const DEFAULT_SETTINGS = {
+            ratio: 'original',
+            font: 'Playfair Display',
+            fontSize: 40,
+            align: 'center',
+            top: 50,                    // vertical position in % (5..95)
+            colorMode: 'white',         // 'white' | 'black' | 'custom'
+            customColor: '#81C784',
+            shadow: 'dark',             // 'dark' | 'light'
+            backdrop: 'none'            // 'none' | 'dim' | 'blur'
         };
-        let ratioMode = 'original';
-        
-        function changeRatio(mode, element) {
-            ratioMode = mode;
-            document.querySelectorAll('.ratio-btn').forEach(el => el.classList.remove('active'));
-            if (element) element.classList.add('active');
-            updateRatioHint();
-            if (currentImage) {
-                setupCanvas();
-                drawCanvas();
+        let settings = loadSettings();
+
+        function loadSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('wpEditorState') || '{}');
+                delete saved.text;              // the passage always comes from the daily loader
+                return Object.assign({}, DEFAULT_SETTINGS, saved);
+            } catch (e) {
+                return Object.assign({}, DEFAULT_SETTINGS);
             }
         }
-        
-        // Apply settings from localStorage (font size; the app is light-only since v3)
-        function loadAppSettings() {
-            // Font size from settings
-            const fontSize = localStorage.getItem('fontSize') || 'medium';
-            applyFontSize(fontSize);
+        function persistSettings() {
+            localStorage.setItem('wpEditorState', JSON.stringify(settings));
         }
-        
-        function applyFontSize(size) {
-            const root = document.documentElement;
-            if (size === 'small') {
-                root.style.setProperty('--base-font-size', '14px');
-                root.style.setProperty('--quote-font-size', '1.4rem');
-            } else if (size === 'large') {
-                root.style.setProperty('--base-font-size', '18px');
-                root.style.setProperty('--quote-font-size', '1.8rem');
-            } else {
-                root.style.setProperty('--base-font-size', '16px');
-                root.style.setProperty('--quote-font-size', '1.6rem');
+
+        function effectiveColor() {
+            return settings.colorMode === 'custom' ? settings.customColor : settings.colorMode;
+        }
+
+        // ── Steps ─────────────────────────────────────────────────────
+        const STEP_TITLES = { 1: 'wp_step1', 2: 'wp_step2', 3: 'wp_step3', 4: 'wp_step4' };
+        let currentStep = 1;
+
+        function gotoStep(n) {
+            currentStep = n;
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('wstep-' + i).classList.toggle('active', i === n);
+                const dot = document.querySelector('[data-dot="' + i + '"]');
+                dot.classList.toggle('current', i === n);
+                dot.classList.toggle('done', i < n);
+                dot.innerHTML = i < n ? '<span class="material-icons-round" aria-hidden="true">check</span>' : String(i);
+                if (i < 4) {
+                    document.querySelector('[data-line="' + i + '"]').classList.toggle('filled', i < n);
+                }
             }
+            document.getElementById('step-title').textContent = wpT(STEP_TITLES[n]);
+            document.getElementById('btn-next-1').disabled = !currentImage;
+            // Dragging makes sense wherever the text can be repositioned
+            canvas.classList.toggle('can-drag', !!currentImage && (n === 2 || n === 3));
+            const m = document.querySelector('main');
+            if (m) m.scrollTo({ top: 0 });
+            if (n === 4) updateExportSummary();
         }
-        
-        // Load daily passage (liturgical calendar first, date-hash fallback)
+
+        function updateExportSummary() {
+            const spec = ratioSpec(settings.ratio);
+            const el = document.getElementById('export-summary');
+            if (el) el.textContent = 'PNG · ' + spec.w + ' \u00D7 ' + spec.h + ' px · ' + settings.font;
+        }
+
+        // ── Daily passage (liturgical calendar first, date-hash fallback) ──
         let liturgicalDays = null;
         let calendarWrapYear = 2026;
         async function loadCalendar() {
@@ -1095,18 +795,16 @@
 
         async function loadDailyQuote() {
             try {
-                const fileName = 'data/bsb.bible.json';
-                // cache: 'no-cache' => data updates appear after a simple reload
-                const response = await fetch(fileName, { cache: 'no-cache' });
+                const response = await fetch('data/bsb.bible.json', { cache: 'no-cache' });
                 if (!response.ok) throw new Error('Failed to load');
                 const data = await response.json();
                 currentQuotes = data.passages || [];
             } catch (error) {
-                console.error(`Could not load passages JSON (if this is a SyntaxError, the JSON file has a syntax mistake, e.g. a missing comma):`, error);
+                console.error('Could not load passages JSON:', error);
                 currentQuotes = fallbackQuotes.slice();
             }
             await loadCalendar();
-            
+
             const today = new Date();
             const year = today.getFullYear();
             const month = today.getMonth();
@@ -1129,15 +827,13 @@
                 quote = currentQuotes[seed % currentQuotes.length];
             }
             currentQuote = quote;
-            
             settings.text = currentQuote.text || "";
-            
+
             if (currentImage) drawCanvas();
         }
 
-        // Event Listeners
+        // ── Image upload (tap / drag & drop) ──────────────────────────
         document.getElementById('image-input').addEventListener('change', handleImageUpload);
-        
         const dropZone = document.getElementById('drop-zone');
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -1153,66 +849,6 @@
             }
         });
 
-        // Sliders
-        document.getElementById('font-size').addEventListener('input', (e) => {
-            settings.fontSize = parseInt(e.target.value);
-            document.getElementById('size-val').textContent = settings.fontSize < 35 ? wpT('wp_small') : settings.fontSize > 60 ? wpT('wp_large') : wpT('wp_medium');
-            drawCanvas();
-        });
-
-        document.getElementById('top-offset').addEventListener('input', (e) => {
-            settings.top = parseInt(e.target.value);
-            document.getElementById('top-val').textContent = settings.top + '%';
-            drawCanvas();
-        });
-
-        document.getElementById('left-offset').addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            settings.leftOffset = val;
-            document.getElementById('left-val').textContent = val + '%';
-            
-            if (marginsLocked) {
-                settings.rightOffset = val;
-                document.getElementById('right-offset').value = val;
-                document.getElementById('right-val').textContent = val + '%';
-            }
-            drawCanvas();
-        });
-
-        document.getElementById('right-offset').addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            settings.rightOffset = val;
-            document.getElementById('right-val').textContent = val + '%';
-            
-            if (marginsLocked) {
-                settings.leftOffset = val;
-                document.getElementById('left-offset').value = val;
-                document.getElementById('left-val').textContent = val + '%';
-            }
-            drawCanvas();
-        });
-
-        function toggleLock() {
-            marginsLocked = !marginsLocked;
-            const btn = document.getElementById('lock-btn');
-            const icon = document.getElementById('lock-icon');
-            
-            if (marginsLocked) {
-                btn.classList.remove('unlocked');
-                icon.textContent = 'lock';
-                const leftVal = parseInt(document.getElementById('left-offset').value);
-                settings.leftOffset = leftVal;
-                settings.rightOffset = leftVal;
-                document.getElementById('right-offset').value = leftVal;
-                document.getElementById('left-val').textContent = leftVal + '%';
-                document.getElementById('right-val').textContent = leftVal + '%';
-                drawCanvas();
-            } else {
-                btn.classList.add('unlocked');
-                icon.textContent = 'lock_open';
-            }
-        }
-
         function handleImageUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -1224,17 +860,16 @@
                     originalWidth = img.width;
                     originalHeight = img.height;
                     originalImage = img;
-                    
-                    const infoEl = document.getElementById('image-info');
-                    infoEl.textContent = `${originalWidth} × ${originalHeight}`;
-                    infoEl.classList.add('visible');
-                    
                     currentImage = img;
+                    colorTouched = false;          // fresh image → auto-contrast may pick again
+
                     setupCanvas();
                     document.getElementById('upload-prompt').style.display = 'none';
                     document.getElementById('change-btn').classList.add('visible');
                     document.getElementById('download-btn').disabled = false;
-                    
+                    document.getElementById('btn-next-1').disabled = false;   // picture ready → step 1 unlocked
+
+                    autoContrast();                 // pick readable color+shadow BEFORE first draw
                     drawCanvas();
                     showToast(wpT('toast_image_loaded').replace('{w}', originalWidth).replace('{h}', originalHeight));
                 };
@@ -1243,39 +878,37 @@
             reader.readAsDataURL(file);
         }
 
-        // Size the preview canvas according to the selected aspect ratio
-        function setupCanvas() {
-            let targetW, targetH;
-            if (ratioMode === 'original') {
-                targetW = originalWidth;
-                targetH = originalHeight;
-            } else {
-                const p = RATIO_PRESETS[ratioMode];
-                targetW = p.w;
-                targetH = p.h;
+        // ── Aspect ratio ──────────────────────────────────────────────
+        function changeRatio(mode, element) {
+            settings.ratio = mode;
+            persistSettings();
+            document.querySelectorAll('.ratio-btn').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+            if (currentImage) {
+                setupCanvas();
+                autoContrast();                     // crop changed → brightness under text changed
+                drawCanvas();
             }
-            
-            let displayWidth = targetW;
-            let displayHeight = targetH;
-            const maxDisplayWidth = 1080;
-            const maxDisplayHeight = 1920;
-            
-            if (displayWidth > maxDisplayWidth) {
-                const ratio = maxDisplayWidth / displayWidth;
-                displayHeight = displayHeight * ratio;
-                displayWidth = maxDisplayWidth;
-            }
-            if (displayHeight > maxDisplayHeight) {
-                const ratio = maxDisplayHeight / displayHeight;
-                displayWidth = displayWidth * ratio;
-                displayHeight = maxDisplayHeight;
-            }
-            
-            canvas.width = Math.round(displayWidth);
-            canvas.height = Math.round(displayHeight);
         }
 
-        // Draw image covering the full target area (center crop)
+        // Label the Phone chip with the DETECTED device aspect (e.g. "Phone 9:19.5")
+        function initPhoneChipLabel() {
+            const btn = document.getElementById('ratio-phone-btn');
+            const ratioTxt = '9:' + (deviceRatio * 9).toFixed(1).replace(/\.0$/, '');
+            btn.textContent = wpT('wp_phone') + ' ' + ratioTxt;
+        }
+
+        // ── Canvas sizing ─────────────────────────────────────────────
+        function setupCanvas() {
+            const spec = ratioSpec(settings.ratio);
+            let w = spec.w, h = spec.h;
+            const maxW = 1080, maxH = 1920;         // preview resolution cap
+            if (w > maxW) { h = h * (maxW / w); w = maxW; }
+            if (h > maxH) { w = w * (maxH / h); h = maxH; }
+            canvas.width = Math.round(w);
+            canvas.height = Math.round(h);
+        }
+
         function drawCoverCrop(context, img, w, h) {
             const scale = Math.max(w / img.width, h / img.height);
             const sw = w / scale;
@@ -1287,48 +920,17 @@
 
         function drawCanvas() {
             if (!currentImage || !originalImage) return;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (ratioMode === 'original') {
-                ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
-            } else {
-                drawCoverCrop(ctx, originalImage, canvas.width, canvas.height);
-            }
-            
-            if (settings.text) {
-                drawTextPreview();
-            }
+            renderInto(ctx, canvas.width, canvas.height);
         }
 
-        function drawTextPreview() {
-            const leftX = (settings.leftOffset / 100) * canvas.width;
-            const rightX = canvas.width - ((settings.rightOffset / 100) * canvas.width);
-            const maxWidth = rightX - leftX;
-            const centerY = (settings.top / 100) * canvas.height;
-            
-            // Consistent with export: font size scales with canvas width
-            const sizeUnit = canvas.width / 400;
-            const displayFontSize = settings.fontSize * sizeUnit;
-            
-            ctx.font = `${displayFontSize}px "${settings.font}"`;
-            ctx.fillStyle = settings.color;
-            ctx.textBaseline = 'middle';
-            
-            if (settings.shadow) {
-                ctx.shadowColor = 'rgba(0,0,0,0.6)';
-                ctx.shadowBlur = 8 * sizeUnit;
-                ctx.shadowOffsetX = 2 * sizeUnit;
-                ctx.shadowOffsetY = 2 * sizeUnit;
-            }
-            
-            const lineHeight = displayFontSize * 1.3;
-            const words = settings.text.split(' ');
+        // ── Text layout helpers (shared by preview + export) ──────────
+        function wrapLines(c, text, maxWidth) {
+            const words = text.split(' ');
             let line = '';
-            let lines = [];
-            
+            const lines = [];
             for (let n = 0; n < words.length; n++) {
                 const testLine = line + words[n] + ' ';
-                if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                if (c.measureText(testLine).width > maxWidth && n > 0) {
                     lines.push(line);
                     line = words[n] + ' ';
                 } else {
@@ -1336,114 +938,224 @@
                 }
             }
             lines.push(line);
-            
-            const totalHeight = lines.length * lineHeight;
-            const startY = centerY - (totalHeight / 2) + (lineHeight / 2);
-            
-            lines.forEach((lineText, i) => {
-                let x;
-                if (settings.align === 'left') {
-                    x = leftX;
-                } else if (settings.align === 'right') {
-                    x = rightX;
-                } else {
-                    x = leftX + (maxWidth / 2);
-                }
-                ctx.textAlign = settings.align;
-                ctx.fillText(lineText.trim(), x, startY + (i * lineHeight));
-            });
-            
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
+            return lines.map(l => l.trim());
         }
 
-        function downloadWallpaper() {
-            if (!originalImage) return;
-            
-            let outW, outH;
-            if (ratioMode === 'original') {
-                outW = originalWidth;
-                outH = originalHeight;
+        function roundRectPath(c, x, y, w, h, r) {
+            c.beginPath();
+            c.moveTo(x + r, y);
+            c.arcTo(x + w, y, x + w, y + h, r);
+            c.arcTo(x + w, y + h, x, y + h, r);
+            c.arcTo(x, y + h, x, y, r);
+            c.arcTo(x, y, x + w, y, r);
+            c.closePath();
+        }
+
+        // Does this browser really support canvas filters (needed for Blur)?
+        const CANVAS_FILTER_SUPPORTED = (() => {
+            try {
+                const t = document.createElement('canvas').getContext('2d');
+                t.filter = 'blur(1px)';
+                return t.filter === 'blur(1px)';
+            } catch (e) { return false; }
+        })();
+
+        // ── Core renderer (preview AND export use this one function) ──
+        function renderInto(c, w, h) {
+            // 1. picture
+            c.clearRect(0, 0, w, h);
+            if (settings.ratio === 'original') {
+                c.drawImage(originalImage, 0, 0, w, h);
             } else {
-                const preset = RATIO_PRESETS[ratioMode];
-                outW = preset.w;
-                outH = preset.h;
+                drawCoverCrop(c, originalImage, w, h);
             }
-            
-            const exportCanvas = document.createElement('canvas');
-            exportCanvas.width = outW;
-            exportCanvas.height = outH;
-            const exportCtx = exportCanvas.getContext('2d');
-            
-            if (ratioMode === 'original') {
-                exportCtx.drawImage(originalImage, 0, 0, outW, outH);
-            } else {
-                drawCoverCrop(exportCtx, originalImage, outW, outH);
-            }
-            
-            if (settings.text) {
-                const leftX = (settings.leftOffset / 100) * outW;
-                const rightX = outW - ((settings.rightOffset / 100) * outW);
-                const maxWidth = rightX - leftX;
-                const centerY = (settings.top / 100) * outH;
-                
-                const sizeUnit = outW / 400;
-                const fontSize = settings.fontSize * sizeUnit;
-                
-                exportCtx.font = `${fontSize}px "${settings.font}"`;
-                exportCtx.fillStyle = settings.color;
-                exportCtx.textBaseline = 'middle';
-                
-                if (settings.shadow) {
-                    exportCtx.shadowColor = 'rgba(0,0,0,0.6)';
-                    exportCtx.shadowBlur = 8 * sizeUnit;
-                    exportCtx.shadowOffsetX = 2 * sizeUnit;
-                    exportCtx.shadowOffsetY = 2 * sizeUnit;
-                }
-                
-                const lineHeight = fontSize * 1.3;
-                const words = settings.text.split(' ');
-                let line = '';
-                let lines = [];
-                
-                for (let n = 0; n < words.length; n++) {
-                    const testLine = line + words[n] + ' ';
-                    if (exportCtx.measureText(testLine).width > maxWidth && n > 0) {
-                        lines.push(line);
-                        line = words[n] + ' ';
+            if (!settings.text) return;
+
+            // 2. text layout
+            const sizeUnit = w / 400;
+            const fontPx = settings.fontSize * sizeUnit;
+            const sidePad = 0.08 * w;               // fixed, margins removed by design
+            const maxW = w - sidePad * 2;
+            c.font = fontPx + 'px "' + settings.font + '"';
+            c.textAlign = settings.align;
+            c.textBaseline = 'middle';
+            const lines = wrapLines(c, settings.text, maxW);
+            const lineHeight = fontPx * 1.3;
+            const blockH = lines.length * lineHeight;
+            const centerY = (settings.top / 100) * h;
+            const startY = centerY - blockH / 2 + lineHeight / 2;
+            const alignX = settings.align === 'left' ? sidePad
+                         : settings.align === 'right' ? w - sidePad
+                         : w / 2;
+
+            // widest line → backdrop bounds
+            let maxLineW = 0;
+            lines.forEach(l => { maxLineW = Math.max(maxLineW, c.measureText(l).width); });
+            const bdX = settings.align === 'left' ? sidePad
+                      : settings.align === 'right' ? w - sidePad - maxLineW
+                      : w / 2 - maxLineW / 2;
+            const bdY = centerY - blockH / 2;
+            const padX = fontPx * 0.5, padY = fontPx * 0.45;
+
+            // 3. backdrop behind text
+            if (settings.backdrop === 'dim') {
+                c.save();
+                roundRectPath(c, bdX - padX, bdY - padY, maxLineW + padX * 2, blockH + padY * 2, fontPx * 0.45);
+                c.fillStyle = 'rgba(0,0,0,0.38)';
+                c.fill();
+                c.restore();
+            } else if (settings.backdrop === 'blur') {
+                c.save();
+                roundRectPath(c, bdX - padX, bdY - padY, maxLineW + padX * 2, blockH + padY * 2, fontPx * 0.45);
+                c.clip();
+                if (CANVAS_FILTER_SUPPORTED) {
+                    c.filter = 'blur(' + Math.round(w * 0.014) + 'px)';
+                    if (settings.ratio === 'original') {
+                        c.drawImage(originalImage, 0, 0, w, h);
                     } else {
-                        line = testLine;
+                        drawCoverCrop(c, originalImage, w, h);
                     }
+                    c.filter = 'none';
+                    // faint dim on top keeps white AND black text readable over blur
+                    c.fillStyle = 'rgba(0,0,0,0.14)';
+                    c.fill();
+                } else {
+                    // Older Safari: degrade gracefully to Dim
+                    c.fillStyle = 'rgba(0,0,0,0.38)';
+                    c.fill();
                 }
-                lines.push(line);
-                
-                const totalHeight = lines.length * lineHeight;
-                const startY = centerY - (totalHeight / 2) + (lineHeight / 2);
-                
-                lines.forEach((lineText, i) => {
-                    let x;
-                    if (settings.align === 'left') {
-                        x = leftX;
-                    } else if (settings.align === 'right') {
-                        x = rightX;
-                    } else {
-                        x = leftX + (maxWidth / 2);
-                    }
-                    exportCtx.textAlign = settings.align;
-                    exportCtx.fillText(lineText.trim(), x, startY + (i * lineHeight));
-                });
+                c.restore();
             }
-            
-            const link = document.createElement('a');
-            link.download = `credo-wallpaper-${outW}x${outH}-${new Date().toISOString().split('T')[0]}.png`;
-            link.href = exportCanvas.toDataURL('image/png', 1.0);
-            link.click();
-            
-            showToast(wpT('toast_saved').replace('{w}', outW).replace('{h}', outH));
+
+            // 4. text with the chosen shadow
+            c.shadowColor = settings.shadow === 'dark' ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.9)';
+            c.shadowBlur = 8 * sizeUnit;
+            c.shadowOffsetX = 2 * sizeUnit;
+            c.shadowOffsetY = 2 * sizeUnit;
+            c.fillStyle = effectiveColor();
+            lines.forEach((lineText, i) => {
+                c.fillText(lineText, alignX, startY + (i * lineHeight));
+            });
+            c.shadowColor = 'transparent';
+            c.shadowBlur = 0;
+        }
+
+        // ── AUTO READABILITY ──────────────────────────────────────────
+        // Measures the average brightness of the band where the text sits
+        // and picks the default pairing: bright area → black text + light
+        // shadow, dark area → white text + dark shadow. Nothing more — it
+        // only fills the INITIAL value and stands down the moment the user
+        // picks a color/shadow themselves (colorTouched), or when there is
+        // a manual choice carried over for this image.
+        function autoContrast() {
+            if (!currentImage || colorTouched) return;
+            try {
+                const s = document.createElement('canvas');
+                s.width = 64; s.height = 100;
+                const sc = s.getContext('2d');
+                if (settings.ratio === 'original') {
+                    sc.drawImage(originalImage, 0, 0, 64, 100);
+                } else {
+                    drawCoverCrop(sc, originalImage, 64, 100);
+                }
+                const y0 = Math.max(0, Math.round((settings.top / 100 - 0.18) * 100));
+                const y1 = Math.min(100, Math.round((settings.top / 100 + 0.18) * 100));
+                const band = sc.getImageData(0, y0, 64, Math.max(1, y1 - y0)).data;
+                let lum = 0;
+                for (let i = 0; i < band.length; i += 4) {
+                    lum += 0.2126 * band[i] + 0.7152 * band[i + 1] + 0.0722 * band[i + 2];
+                }
+                lum = lum / (band.length / 4) / 255;
+                if (lum > 0.55) {
+                    settings.colorMode = 'black';
+                    settings.shadow = 'light';
+                } else {
+                    settings.colorMode = 'white';
+                    settings.shadow = 'dark';
+                }
+                syncColorUI();
+                syncShadowUI();
+                if (typeof drawCanvas === 'function') drawCanvas();
+            } catch (e) {
+                console.warn('autoContrast failed:', e);
+            }
+        }
+
+        // ── DRAG the text vertically (mouse / touch / pen via Pointer Events) ──
+        let dragging = false;
+        let dragRaf = null;
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!canvas.classList.contains('can-drag')) return;
+            dragging = true;
+            canvas.classList.add('dragging');
+            canvas.setPointerCapture(e.pointerId);
+            updateDragFromPointer(e);
+            e.preventDefault();
+        });
+        canvas.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            updateDragFromPointer(e);
+        });
+        const endDrag = (e) => {
+            if (!dragging) return;
+            dragging = false;
+            canvas.classList.remove('dragging');
+            persistSettings();
+            if (!dragHintDone) {
+                dragHintDone = true;
+                localStorage.setItem('wpDragHintSeen', '1');
+                const hint = document.getElementById('drag-hint');
+                if (hint) hint.style.display = 'none';
+            }
+            try { if (e.pointerId !== undefined) canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+        };
+        canvas.addEventListener('pointerup', endDrag);
+        canvas.addEventListener('pointercancel', endDrag);
+
+        function updateDragFromPointer(e) {
+            const rect = canvas.getBoundingClientRect();
+            const frac = (e.clientY - rect.top) / rect.height;
+            settings.top = Math.round(Math.min(95, Math.max(5, frac * 100)));
+            canvas.setAttribute('aria-valuenow', settings.top);
+            if (dragRaf) cancelAnimationFrame(dragRaf);
+            dragRaf = requestAnimationFrame(() => { dragRaf = null; drawCanvas(); });
+        }
+
+        // Keyboard access to the same action (canvas is a role=slider)
+        canvas.addEventListener('keydown', (e) => {
+            if (!canvas.classList.contains('can-drag')) return;
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                settings.top = Math.min(95, Math.max(5, settings.top + (e.key === 'ArrowUp' ? -2 : 2)));
+                canvas.setAttribute('aria-valuenow', settings.top);
+                drawCanvas();
+                persistSettings();
+            }
+        });
+
+        // ── Typography controls ───────────────────────────────────────
+        // Quick Looks: one tap sets the whole typographic look
+        const PRESETS = {
+            clean:       { font: 'Lato',            fontSize: 40, align: 'center', top: 50 },
+            elegant:     { font: 'Playfair Display', fontSize: 44, align: 'center', top: 62 },
+            handwriting: { font: 'Caveat',          fontSize: 58, align: 'center', top: 32 },
+            modern:      { font: 'Montserrat',      fontSize: 36, align: 'left',   top: 50 }
+        };
+        function applyPreset(name, element) {
+            const p = PRESETS[name];
+            if (!p) return;
+            Object.assign(settings, p);
+            persistSettings();
+            document.querySelectorAll('.preset-btn').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+            syncTypographyUI();
+            drawCanvas();
         }
 
         function changeFont(font, element) {
             settings.font = font;
+            persistSettings();
             document.querySelectorAll('.font-option').forEach(el => {
                 el.classList.remove('active');
                 el.setAttribute('aria-pressed', 'false');
@@ -1453,23 +1165,9 @@
             drawCanvas();
         }
 
-        function changeColor(color, element) {
-            settings.color = color;
-            document.querySelectorAll('.color-swatch').forEach(el => {
-                if (!el.classList.contains('color-wheel')) {
-                    el.classList.remove('active');
-                    el.setAttribute('aria-pressed', 'false');
-                }
-            });
-            if (element) {
-                element.classList.add('active');
-                element.setAttribute('aria-pressed', 'true');
-            }
-            drawCanvas();
-        }
-
         function changeAlign(align, element) {
             settings.align = align;
+            persistSettings();
             document.querySelectorAll('.align-btn').forEach(el => {
                 el.classList.remove('active');
                 el.setAttribute('aria-pressed', 'false');
@@ -1479,6 +1177,76 @@
             drawCanvas();
         }
 
+        document.getElementById('font-size').addEventListener('input', (e) => {
+            settings.fontSize = parseInt(e.target.value);
+            persistSettings();
+            drawCanvas();
+        });
+
+        // Sync chips/slider with the settings object (used by presets AND restore)
+        function syncTypographyUI() {
+            document.getElementById('font-size').value = settings.fontSize;
+            document.querySelectorAll('.font-option').forEach(el => {
+                const on = el.getAttribute('data-font') === settings.font;
+                el.classList.toggle('active', on);
+                el.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            document.querySelectorAll('.align-btn').forEach(el => {
+                const on = el.getAttribute('data-align') === settings.align;
+                el.classList.toggle('active', on);
+                el.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+        }
+
+        // ── Color / shadow / backdrop controls ────────────────────────
+        function changeColorMode(mode, element) {
+            settings.colorMode = mode;
+            colorTouched = true;
+            persistSettings();
+            document.querySelectorAll('.color-swatch').forEach(el => {
+                el.classList.remove('active');
+                el.setAttribute('aria-pressed', 'false');
+            });
+            if (element) {
+                element.classList.add('active');
+                element.setAttribute('aria-pressed', 'true');
+            }
+            drawCanvas();
+        }
+
+        function changeShadow(mode, element) {
+            settings.shadow = mode;
+            colorTouched = true;
+            persistSettings();
+            syncShadowUI();
+            drawCanvas();
+        }
+
+        function changeBackdrop(mode, element) {
+            settings.backdrop = mode;
+            persistSettings();
+            document.querySelectorAll('.backdrop-btn').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+            drawCanvas();
+        }
+
+        function syncColorUI() {
+            document.querySelectorAll('.color-swatch').forEach(el => {
+                const mode = el.classList.contains('white') ? 'white'
+                           : el.classList.contains('black') ? 'black' : 'custom';
+                const on = settings.colorMode === mode;
+                el.classList.toggle('active', on);
+                el.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+        }
+
+        function syncShadowUI() {
+            document.querySelectorAll('.shadow-btn').forEach(el => {
+                el.classList.toggle('active', el.getAttribute('data-shadow') === settings.shadow);
+            });
+        }
+
+        // ── Color picker modal ────────────────────────────────────────
         let lastColorTrigger = null;
 
         function openColorPicker() {
@@ -1486,7 +1254,6 @@
             updateRecentColorsDisplay();
             const modal = document.getElementById('color-modal');
             modal.classList.add('open');
-            document.body.classList.add('modal-open');
             const done = modal.querySelector('.close-color-modal');
             if (done) setTimeout(() => done.focus(), 80);
         }
@@ -1495,13 +1262,11 @@
             if (!e || e.target.id === 'color-modal' || e.target.classList.contains('close-color-modal')) {
                 const modal = document.getElementById('color-modal');
                 modal.classList.remove('open');
-                document.body.classList.remove('modal-open');
                 if (lastColorTrigger && typeof lastColorTrigger.focus === 'function') lastColorTrigger.focus();
                 lastColorTrigger = null;
             }
         }
 
-        // Escape closes the color modal (this page does not load js/app.js)
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && document.getElementById('color-modal').classList.contains('open')) {
                 closeColorPicker();
@@ -1509,9 +1274,13 @@
         });
 
         function handleColorPick(color) {
-            settings.color = color;
+            settings.colorMode = 'custom';
+            settings.customColor = color;
+            colorTouched = true;
+            persistSettings();
             document.getElementById('current-color-display').style.background = color;
-            document.querySelectorAll('.color-swatch:not(.color-wheel)').forEach(el => el.classList.remove('active'));
+            document.getElementById('color-picker-input').value = color;
+            syncColorUI();
             addToRecentColors(color);
             updateRecentColorsDisplay();
             drawCanvas();
@@ -1528,7 +1297,6 @@
         function updateRecentColorsDisplay() {
             const grid = document.getElementById('recent-colors-grid');
             grid.innerHTML = '';
-            
             for (let i = 0; i < 6; i++) {
                 const div = document.createElement('div');
                 if (recentColors[i]) {
@@ -1543,12 +1311,68 @@
         }
 
         function selectRecentColor(color) {
-            settings.color = color;
+            settings.colorMode = 'custom';
+            settings.customColor = color;
+            colorTouched = true;
+            persistSettings();
             document.getElementById('current-color-display').style.background = color;
             document.getElementById('color-picker-input').value = color;
-            document.querySelectorAll('.color-swatch:not(.color-wheel)').forEach(el => el.classList.remove('active'));
+            syncColorUI();
             addToRecentColors(color);
             drawCanvas();
+        }
+
+        // ── Export: save / share ──────────────────────────────────────
+        function buildExportCanvas() {
+            const spec = ratioSpec(settings.ratio);
+            const out = document.createElement('canvas');
+            out.width = spec.w;
+            out.height = spec.h;
+            renderInto(out.getContext('2d'), spec.w, spec.h);
+            return out;
+        }
+
+        function exportFileName(spec) {
+            return `credo-wallpaper-${spec.w}x${spec.h}-${new Date().toISOString().split('T')[0]}.png`;
+        }
+
+        function downloadWallpaper() {
+            if (!originalImage) return;
+            const out = buildExportCanvas();
+            const spec = { w: out.width, h: out.height };
+            const link = document.createElement('a');
+            link.download = exportFileName(spec);
+            link.href = out.toDataURL('image/png', 1.0);
+            link.click();
+            showToast(wpT('toast_saved').replace('{w}', spec.w).replace('{h}', spec.h));
+        }
+
+        async function shareWallpaper() {
+            if (!originalImage) return;
+            const out = buildExportCanvas();
+            const blob = await new Promise(res => out.toBlob(res, 'image/png'));
+            if (!blob) return;
+            const file = new File([blob], exportFileName({ w: out.width, h: out.height }), { type: 'image/png' });
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Credo',
+                    text: currentQuote ? (currentQuote.text + ' — ' + currentQuote.author) : ''
+                });
+                showToast(wpT('toast_shared'));
+            } catch (err) {
+                if (err && err.name !== 'AbortError') console.warn('share failed:', err);
+            }
+        }
+
+        // Show Share only where the platform supports file sharing
+        if (navigator.canShare) {
+            try {
+                const probe = new File([new Blob(['x'])], 'p.png', { type: 'image/png' });
+                if (navigator.canShare({ files: [probe] })) {
+                    document.getElementById('share-btn').style.display = 'inline-flex';
+                }
+            } catch (e) { /* stay hidden */ }
         }
 
         function showToast(message) {
@@ -1558,12 +1382,40 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // Init
+        // Apply the app-wide UI font size to the editor shell
+        function applyFontSize(size) {
+            const root = document.documentElement;
+            if (size === 'small') {
+                root.style.setProperty('--base-font-size', '14px');
+            } else if (size === 'large') {
+                root.style.setProperty('--base-font-size', '18px');
+            } else {
+                root.style.setProperty('--base-font-size', '16px');
+            }
+        }
+
+        // ── Init ──────────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
-            loadAppSettings(); // Apply font size and theme from settings
-            applyWallpaperLanguage(); // Apply English UI texts
+            applyFontSize(localStorage.getItem('fontSize') || 'medium');
+            applyWallpaperLanguage();
+            initPhoneChipLabel();
             updateRecentColorsDisplay();
+            syncTypographyUI();
+            syncColorUI();
+            syncShadowUI();
+            document.getElementById('current-color-display').style.background = settings.customColor;
+            document.getElementById('color-picker-input').value = settings.customColor;
+            if (dragHintDone) document.getElementById('drag-hint').style.display = 'none';
+            // restore active ratio chip
+            document.querySelectorAll('.ratio-btn').forEach(el => {
+                el.classList.toggle('active', el.getAttribute('data-ratio') === settings.ratio);
+            });
+            gotoStep(1);
             loadDailyQuote();
+            // Canvas fonts may finish loading after the first draw
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(() => { if (currentImage) drawCanvas(); });
+            }
         });
 
         window.addEventListener('resize', () => {
