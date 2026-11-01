@@ -1248,6 +1248,12 @@ input[type="range"]::-moz-range-thumb {
 /* ═══ WALLPAPER PAGE ═════════════════════════════════════ */
 #wallpaper-page .bottom-nav { display: none !important; }
 
+/* Saved page uses the back-arrow shell (like the wallpaper editor) —
+   no bottom nav, so the space reserved for it is reclaimed. */
+body[data-page="saved"] main {
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+}
+
 .back-btn.wallpaper-back {
     position: fixed;
     left: 20px;

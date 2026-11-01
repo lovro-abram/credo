@@ -34,14 +34,20 @@
     <meta name="twitter:description" content="Your saved Bible passages and personal notes, stored only in your browser.">
     <meta name="twitter:image" content="https://credo.labram.workers.dev/og-image.png">
     <meta name="twitter:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
-    <link rel="stylesheet" href="css/fonts.css?v=27">
-    <link rel="stylesheet" href="css/style.css?v=27">
+    <link rel="stylesheet" href="css/fonts.css?v=28">
+    <link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body data-page="saved">
 
     <div id="app-container">
-        <header>
-            <h1>Credo</h1>
+        <!-- Header with a BACK ARROW (like wallpaper.html): Saved is reached
+             from the Settings card, so it navigates back there. No bottom
+             navigation on this page — the arrow replaces it. -->
+        <header style="padding: 12px 20px; flex-shrink: 0;">
+            <button class="back-btn" onclick="window.location.href='settings'" style="display: flex; position: absolute; left: 20px; top: 50%; transform: translateY(-50%);" aria-label="Back to settings">
+                <span class="material-icons-round" aria-hidden="true">arrow_back</span>
+            </button>
+            <h1 data-i18n="saved_link">Saved Passages</h1>
         </header>
 
         <main>
@@ -84,22 +90,6 @@
                 </div>
             </div>
         </main>
-
-        <!-- Bottom Navigation -->
-        <nav class="bottom-nav">
-            <a href="./" class="nav-item">
-                <span class="nav-quote-icon" aria-hidden="true">❞</span>
-                <span data-i18n="nav_today">Home</span>
-            </a>
-            <a href="bible" class="nav-item">
-                <span class="material-icons-round" aria-hidden="true">menu_book</span>
-                <span data-i18n="nav_bible">Bible</span>
-            </a>
-            <a href="settings" class="nav-item">
-                <span class="material-icons-round" aria-hidden="true">settings</span>
-                <span data-i18n="nav_settings">Settings</span>
-            </a>
-        </nav>
     </div>
 
     <!-- Notes Modal -->
@@ -140,7 +130,7 @@
         <span id="toast-message">Message</span>
     </div>
 
-    <script src="js/app.js?v=27"></script>
+    <script src="js/app.js?v=28"></script>
     <script>
         // Initialize saved page
         document.addEventListener('DOMContentLoaded', () => {

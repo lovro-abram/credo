@@ -1,4 +1,4 @@
-const CACHE_NAME = 'credo-v27';
+const CACHE_NAME = 'credo-v28';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -162,11 +162,30 @@ self.addEventListener('fetch', (event) => {
         throw new Error('HTTP ' + (fresh ? fresh.status : 'n/a'));
       } catch (err) {
         // Offline fallbacks, loosest last: exact url → same page ignoring
-        // the query string → cached home page.
+        // the query string → the page's real file via the route map → home.
+        // The ROUTE MAP matters: a navigation is only cached under the exact
+        // url after the user has visited that page ONLINE. Without the map,
+        // tapping "Bible" (or "Read full chapter") in an offline PWA that
+        // never opened /bible fell through to the cached HOME page — the app
+        // looked frozen on the same screen. Now every app route resolves to
+        // its install-time-cached HTML file, and bible.html shows its own
+        // "Bible reading works online only" screen.
         const exact = await caches.match(request).catch(() => null);
         if (exact) return exact;
         const loose = await caches.match(request, { ignoreSearch: true }).catch(() => null);
         if (loose) return loose;
+        const ROUTES = {
+          '/': './index.html', '/index.html': './index.html',
+          '/bible': './bible.html', '/bible.html': './bible.html',
+          '/saved': './saved.html', '/saved.html': './saved.html',
+          '/settings': './settings.html', '/settings.html': './settings.html',
+          '/wallpaper': './wallpaper.html', '/wallpaper.html': './wallpaper.html'
+        };
+        const routeFile = ROUTES[url.pathname];
+        if (routeFile) {
+          const page = await caches.match(routeFile).catch(() => null);
+          if (page) return page;
+        }
         const home = await caches.match('./index.html').catch(() => null);
         if (home) return home;
         return new Response('Offline', {

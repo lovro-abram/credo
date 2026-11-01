@@ -34,8 +34,8 @@
     <meta name="twitter:description" content="Credo app settings: font size, wallpaper editor, backup and restore.">
     <meta name="twitter:image" content="https://credo.labram.workers.dev/og-image.png">
     <meta name="twitter:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
-    <link rel="stylesheet" href="css/fonts.css?v=27">
-    <link rel="stylesheet" href="css/style.css?v=27">
+    <link rel="stylesheet" href="css/fonts.css?v=28">
+    <link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body data-page="settings">
 
@@ -150,9 +150,11 @@
         <span id="toast-message">Message</span>
     </div>
 
-    <script src="js/app.js?v=27"></script>
+    <script src="js/app.js?v=28"></script>
     <script>
-        // Live count for the Saved Passages card: "2 favorites · 1 note"
+        // Live count for the Saved Passages card — ALWAYS visible, even when
+        // both are empty: "0 favorites · 0 notes" tells the user at a glance
+        // where their saves live and that the counter is working.
         function updateSavedCount() {
             let favs = 0, notes = 0;
             try {
@@ -164,10 +166,6 @@
             } catch (e) { /* keep 0 */ }
             const el = document.getElementById('saved-count-desc');
             if (!el) return;
-            if (favs === 0 && notes === 0) {
-                el.textContent = 'Your favorites and notes';
-                return;
-            }
             el.textContent = favs + ' favorite' + (favs === 1 ? '' : 's') +
                 ' \u00B7 ' + notes + ' note' + (notes === 1 ? '' : 's');
         }

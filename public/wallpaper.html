@@ -26,8 +26,8 @@
     <meta property="og:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
     <meta property="og:locale" content="en_US">
 
-    <link rel="stylesheet" href="css/fonts.css?v=27">
-    <link rel="stylesheet" href="css/style.css?v=27">
+    <link rel="stylesheet" href="css/fonts.css?v=28">
+    <link rel="stylesheet" href="css/style.css?v=28">
 
     <style>
         /* ═══ Wallpaper Editor — 4-step wizard ═══
@@ -182,7 +182,7 @@
         }
         .control-group:first-child .control-label { margin-top: 0; }
 
-        /* Chip rows: ratios, fonts, align, reference align, shadow, backdrop */
+        /* Chip rows: ratios, fonts, align, outline, automatic shadow */
         .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
         .chip {
             padding: 8px 14px;
@@ -201,13 +201,17 @@
         .chip:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 0 var(--shadow-c); }
         .chip:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--shadow-c); }
         .chip.active { background: var(--green); color: var(--on-green); }
+        /* The Text Shadow chip is an INDICATOR, not a choice — the shadow
+           color always follows the text color (light text → black shadow,
+           dark text → white shadow). */
+        .chip:disabled { pointer-events: none; cursor: default; }
 
         .font-option.playfair   { font-family: 'Playfair Display', serif; }
         .font-option.lato       { font-family: 'Lato', sans-serif; }
         .font-option.caveat     { font-family: 'Caveat', cursive; font-size: 1rem; }
         .font-option.merriweather { font-family: 'Merriweather', serif; font-size: 0.78rem; }
 
-        /* Small print under the reference-alignment chips */
+        /* Small print under the automatic shadow indicator */
         .ref-note {
             margin: 6px 2px 0;
             font-family: var(--font-ui);
@@ -229,6 +233,9 @@
         .color-swatch.active { outline: 3px solid var(--green); outline-offset: 2px; }
         .color-swatch.white  { background: #ffffff; }
         .color-swatch.black  { background: #000000; }
+        /* The Average swatch wears the picture's mean color (set by JS once
+           an image is loaded / the crop changes). */
+        .color-swatch.avg { background: var(--surface-2); }
         /* The Custom swatch's background is the current custom color
            (set by JS) — no conic rainbow wheel, that picker is gone. */
 
@@ -362,7 +369,11 @@
             pointer-events: none;
             left: 50%; top: 50%;
         }
-        .cp-hue {
+        /* Full hue spectrum on the track: red → yellow → green → cyan →
+           blue → magenta → red. NOTE the doubled selector: the generic
+           input[type="range"] styling above has higher specificity than a
+           bare class, and it used to paint this track pale green. */
+        input[type="range"].cp-hue {
             -webkit-appearance: none;
             appearance: none;
             width: 100%;
@@ -376,7 +387,7 @@
             margin-bottom: 12px;
             padding: 0;
         }
-        .cp-hue::-webkit-slider-thumb {
+        input[type="range"].cp-hue::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 24px; height: 24px;
             border-radius: 50%;
@@ -385,7 +396,7 @@
             cursor: pointer;
             box-shadow: 2px 2px 0 0 var(--shadow-c);
         }
-        .cp-hue::-moz-range-thumb {
+        input[type="range"].cp-hue::-moz-range-thumb {
             width: 20px; height: 20px;
             border-radius: 50%;
             background: #fff;
@@ -559,7 +570,7 @@
                     </div>
                 </section>
 
-                <!-- ── STEP 2: typography (font, size, align, reference, drag) ── -->
+                <!-- ── STEP 2: typography (font, size, align, drag) ── -->
                 <section class="wstep" id="wstep-2">
                     <div class="step-card">
                         <label class="control-label" data-i18n="wp_font">Font Style</label>
@@ -590,20 +601,6 @@
                             </button>
                         </div>
 
-                        <label class="control-label" data-i18n="wp_ref_align">Reference Alignment</label>
-                        <div class="chip-row" id="ref-align-row">
-                            <button class="chip ref-align-btn" data-ref-align="left" onclick="changeRefAlign('left', this)" title="Left" data-i18n-title="wp_left">
-                                <span class="material-icons-round" aria-hidden="true">format_align_left</span>
-                            </button>
-                            <button class="chip ref-align-btn active" data-ref-align="center" onclick="changeRefAlign('center', this)" title="Center" data-i18n-title="wp_center">
-                                <span class="material-icons-round" aria-hidden="true">format_align_center</span>
-                            </button>
-                            <button class="chip ref-align-btn" data-ref-align="right" onclick="changeRefAlign('right', this)" title="Right" data-i18n-title="wp_right">
-                                <span class="material-icons-round" aria-hidden="true">format_align_right</span>
-                            </button>
-                        </div>
-                        <div class="ref-note" data-i18n="wp_ref_note">Used when the reference sits on its own line</div>
-
                         <div class="drag-hint" id="drag-hint">
                             <span class="material-icons-round" aria-hidden="true">open_with</span>
                             <span data-i18n="wp_drag_hint">Drag the text on the picture to move it up or down</span>
@@ -622,28 +619,33 @@
                     </div>
                 </section>
 
-                <!-- ── STEP 3: color, shadow, backdrop ─────────────────── -->
+                <!-- ── STEP 3: color, outline, automatic shadow ──────────
+                     Order per spec: Text Color (4 circles) → Text Outline
+                     (below color, above shadow) → Text Shadow, which is NO
+                     LONGER a choice: light text always gets a black shadow,
+                     dark text a white one — shown as a static indicator. -->
                 <section class="wstep" id="wstep-3">
                     <div class="step-card">
                         <label class="control-label" data-i18n="wp_color">Text Color</label>
                         <div class="chip-row">
                             <button class="color-swatch white" type="button" aria-pressed="false" onclick="changeColorMode('white', this)" title="White" aria-label="White" data-i18n-title="wp_c_white"></button>
                             <button class="color-swatch black" type="button" aria-pressed="false" onclick="changeColorMode('black', this)" title="Black" aria-label="Black" data-i18n-title="wp_c_black"></button>
+                            <button class="color-swatch avg" type="button" aria-pressed="false" onclick="changeColorMode('average', this)" title="Average color of the picture" aria-label="Average color of the picture" data-i18n-title="wp_c_avg"></button>
                             <button class="color-swatch custom" type="button" aria-pressed="false" onclick="openColorPicker()" title="Custom color" aria-label="Custom color" data-i18n-title="wp_c_custom"></button>
                         </div>
 
-                        <label class="control-label" data-i18n="wp_shadow">Text Shadow</label>
-                        <div class="chip-row" id="shadow-row">
-                            <button class="chip shadow-btn active" data-shadow="dark" onclick="changeShadow('dark', this)" data-i18n="wp_shadow_dark">Dark</button>
-                            <button class="chip shadow-btn" data-shadow="light" onclick="changeShadow('light', this)" data-i18n="wp_shadow_light">Light</button>
+                        <label class="control-label" data-i18n="wp_outline">Text Outline</label>
+                        <div class="chip-row" id="outline-row">
+                            <button class="chip outline-btn active" data-outline="none" onclick="changeOutline('none', this)" data-i18n="wp_o_none">None</button>
+                            <button class="chip outline-btn" data-outline="black" onclick="changeOutline('black', this)" data-i18n="wp_o_black">Black</button>
+                            <button class="chip outline-btn" data-outline="white" onclick="changeOutline('white', this)" data-i18n="wp_o_white">White</button>
                         </div>
 
-                        <label class="control-label" data-i18n="wp_backdrop">Backdrop Behind Text</label>
-                        <div class="chip-row" id="backdrop-row">
-                            <button class="chip backdrop-btn active" data-backdrop="none" onclick="changeBackdrop('none', this)" data-i18n="wp_bd_none">None</button>
-                            <button class="chip backdrop-btn" data-backdrop="dim" onclick="changeBackdrop('dim', this)" data-i18n="wp_bd_dim">Dim</button>
-                            <button class="chip backdrop-btn" data-backdrop="blur" onclick="changeBackdrop('blur', this)" data-i18n="wp_bd_blur">Blur</button>
+                        <label class="control-label" data-i18n="wp_shadow">Text Shadow</label>
+                        <div class="chip-row">
+                            <button class="chip shadow-auto active" id="shadow-auto-chip" type="button" disabled>Black</button>
                         </div>
+                        <div class="ref-note" data-i18n="wp_shadow_auto">Automatic — follows the text color</div>
 
                         <div class="step-nav">
                             <button class="nav-btn secondary" onclick="gotoStep(2)">
@@ -721,19 +723,22 @@
         // CREDO Wallpaper Editor — 4-step wizard
         //  1 Picture (upload, aspect ratio, DRAG TO PAN/CROP)   2
         //    Typography (font, size, alignment, italic reference, drag
-        //    the TEXT)   3 Color (color/shadow/backdrop)   4 Save/share
+        //    the TEXT)   3 Color (4 circles: white / black / average /
+        //    custom + TEXT OUTLINE + AUTOMATIC shadow)   4 Save/share
         // Dragging is contextual: step 1 moves the PICTURE inside its
         // frame (which part stays visible), step 2 moves the TEXT
         // vertically, steps 3–4 are static. The custom color picker is
         // built in-house (hue slider + saturation/brightness square +
         // hex field) and offers the picture's average color as a
         // one-tap choice.
-        // The reference ("- Luke 14:10") uses the same family and colour
-        // as the passage, italic and smaller; it joins the last line when
-        // it fully fits, otherwise it drops to its own line, aligned per
-        // the Reference Alignment option.
+        // The reference ("- Luke 14:10") uses the same family, colour AND
+        // alignment as the passage, italic and smaller; it joins the last
+        // line when it fully fits, otherwise it drops to its own line.
+        // Readability: light text always casts a BLACK shadow, dark text a
+        // WHITE one — there is no shadow choice any more. An optional
+        // outline (none / black / white) sits between color and shadow.
         // Last-used look is remembered in localStorage (wpEditorState);
-        // readability (color+shadow) is auto-picked per image from the
+        // readability (color) is auto-picked per image from the
         // brightness under the text until the user overrides it.
         // ═══════════════════════════════════════════════════════════════
 
@@ -765,11 +770,10 @@
                 wp_drag_hint: 'Drag the text on the picture to move it up or down',
                 wp_font: 'Font Style',
                 wp_f_classic: 'Classic', wp_f_clean: 'Clean', wp_f_relaxed: 'Relaxed', wp_f_elegant: 'Elegant',
-                wp_ref_align: 'Reference Alignment',
-                wp_ref_note: 'Used when the reference sits on its own line',
-                wp_color: 'Text Color', wp_c_white: 'White', wp_c_black: 'Black', wp_c_custom: 'Custom color',
-                wp_shadow: 'Text Shadow', wp_shadow_dark: 'Dark', wp_shadow_light: 'Light',
-                wp_backdrop: 'Backdrop Behind Text', wp_bd_none: 'None', wp_bd_dim: 'Dim', wp_bd_blur: 'Blur',
+                wp_color: 'Text Color', wp_c_white: 'White', wp_c_black: 'Black',
+                wp_c_avg: 'Average color of the picture', wp_c_custom: 'Custom color',
+                wp_outline: 'Text Outline', wp_o_none: 'None', wp_o_black: 'Black', wp_o_white: 'White',
+                wp_shadow: 'Text Shadow', wp_shadow_auto: 'Automatic — follows the text color',
                 wp_save: 'Save Wallpaper', wp_share: 'Share',
                 wp_pick: 'Pick a color', wp_recent: 'Recent colors', wp_done: 'Done',
                 wp_pan_hint: 'Drag the picture to choose which part is visible',
@@ -807,7 +811,8 @@
         let originalImage = null;     // same (kept name for export logic)
         let originalWidth = 0;
         let originalHeight = 0;
-        let colorTouched = false;     // user picked color/shadow for THIS image → auto-contrast stands down
+        let colorTouched = false;     // user picked color/outline for THIS image → auto-contrast stands down
+        let imgAvgColor = null;       // mean color of the visible picture ("average" swatch)
         let dragHintDone = localStorage.getItem('wpDragHintSeen') === '1';
         let panHintDone = localStorage.getItem('wpPanHintSeen') === '1';
 
@@ -836,19 +841,20 @@
         }
 
         const FONT_OPTIONS = ['Playfair Display', 'Lato', 'Caveat', 'Merriweather'];
-        const REF_ALIGNS = ['left', 'center', 'right'];
 
         const DEFAULT_SETTINGS = {
             ratio: 'original',
             font: 'Playfair Display',
             fontSize: 40,
             align: 'center',
-            refAlign: 'center',         // alignment when the reference gets its own line
             top: 50,                    // vertical position in % (5..95)
-            colorMode: 'white',         // 'white' | 'black' | 'custom'
+            colorMode: 'white',         // 'white' | 'black' | 'average' | 'custom'
             customColor: '#81C784',
-            shadow: 'dark',             // 'dark' | 'light'
-            backdrop: 'none'            // 'none' | 'dim' | 'blur'
+            outline: 'none'             // 'none' | 'black' | 'white'
+            // NOTE: shadow is NOT a setting — it is derived from the text
+            // color (light text → black shadow, dark text → white shadow).
+            // The old refAlign / shadow / backdrop options are retired; any
+            // leftovers in wpEditorState are deleted on load below.
         };
         let settings = loadSettings();
 
@@ -856,12 +862,14 @@
             try {
                 const saved = JSON.parse(localStorage.getItem('wpEditorState') || '{}');
                 delete saved.text;              // the passage always comes from the daily loader
+                delete saved.refAlign;          // retired: reference follows the passage alignment
+                delete saved.shadow;            // retired: shadow is derived from the text color
+                delete saved.backdrop;          // retired: option removed
                 // Fonts removed from the picker (e.g. Montserrat, Dancing
                 // Script) must never resurrect themselves from storage.
                 if (saved.font && !FONT_OPTIONS.includes(saved.font)) {
                     saved.font = DEFAULT_SETTINGS.font;
                 }
-                if (saved.refAlign && !REF_ALIGNS.includes(saved.refAlign)) delete saved.refAlign;
                 return Object.assign({}, DEFAULT_SETTINGS, saved);
             } catch (e) {
                 return Object.assign({}, DEFAULT_SETTINGS);
@@ -874,7 +882,24 @@
         }
 
         function effectiveColor() {
-            return settings.colorMode === 'custom' ? settings.customColor : settings.colorMode;
+            if (settings.colorMode === 'custom') return settings.customColor;
+            if (settings.colorMode === 'average') return imgAvgColor || '#808080';
+            return settings.colorMode;      // 'white' | 'black'
+        }
+
+        // Relative luminance of the effective text color — drives the
+        // AUTOMATIC shadow: light text gets a black shadow, dark text a
+        // white one (user spec: no shadow choice any more).
+        function textLuminance() {
+            let hex = effectiveColor();
+            // the plain modes are named colors, the helpers below want hex
+            if (hex === 'white') hex = '#ffffff';
+            else if (hex === 'black') hex = '#000000';
+            const rgb = hexToRgb(hex) || [255, 255, 255];
+            return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
+        }
+        function autoShadowColor() {
+            return textLuminance() > 0.5 ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.9)';
         }
 
         // ── Steps ─────────────────────────────────────────────────────
@@ -1012,6 +1037,7 @@
                     imgPan = { x: 0, y: 0 };       // fresh image starts centered
 
                     setupCanvas();
+                    refreshAverageColor();         // mean color for the "average" swatch
                     document.getElementById('upload-prompt').style.display = 'none';
                     document.getElementById('change-btn').classList.add('visible');
                     document.getElementById('download-btn').disabled = false;
@@ -1039,6 +1065,7 @@
             if (element) element.classList.add('active');
             if (currentImage) {
                 setupCanvas();
+                refreshAverageColor();              // crop changed → mean color changed
                 autoContrast();                     // crop changed → brightness under text changed
                 drawCanvas();
             }
@@ -1104,25 +1131,6 @@
             return fontPx * 1.15;
         }
 
-        function roundRectPath(c, x, y, w, h, r) {
-            c.beginPath();
-            c.moveTo(x + r, y);
-            c.arcTo(x + w, y, x + w, y + h, r);
-            c.arcTo(x + w, y + h, x, y + h, r);
-            c.arcTo(x, y + h, x, y, r);
-            c.arcTo(x, y, x + w, y, r);
-            c.closePath();
-        }
-
-        // Does this browser really support canvas filters (needed for Blur)?
-        const CANVAS_FILTER_SUPPORTED = (() => {
-            try {
-                const t = document.createElement('canvas').getContext('2d');
-                t.filter = 'blur(1px)';
-                return t.filter === 'blur(1px)';
-            } catch (e) { return false; }
-        })();
-
         // ── Core renderer (preview AND export use this one function) ──
         function renderInto(c, w, h) {
             // 1. picture
@@ -1142,11 +1150,11 @@
             const sidePad = 0.08 * w;               // fixed, margins removed by design
             const maxW = w - sidePad * 2;
 
-            // ── Reference ("- Luke 14:10"): same family and colour as the
-            //    passage, italic and smaller. The whole reference is ONE
-            //    unbreakable block: it joins the LAST line when it fully
-            //    fits next to it, otherwise it drops to its own line,
-            //    aligned per settings.refAlign.
+            // ── Reference ("- Luke 14:10"): same family, colour AND
+            //    alignment as the passage, italic and smaller. The whole
+            //    reference is ONE unbreakable block: it joins the LAST line
+            //    when it fully fits next to it, otherwise it drops to its
+            //    own line under the same alignment.
             const refText = (currentQuote && currentQuote.author) ? '- ' + currentQuote.author : '';
             const REF_RATIO = 0.62;                 // reference size vs passage size
             const REF_GAP_RATIO = 0.45;             // gap vs reference size
@@ -1202,90 +1210,77 @@
             const centerY = (settings.top / 100) * h;
             const startY = centerY - blockH / 2 + lineHeight / 2;
 
-            // backdrop bounds = union of every line AND the reference
-            let bdX0 = Infinity, bdX1 = -Infinity;
-            lines.forEach((l, i) => {
-                bdX0 = Math.min(bdX0, lineX0(settings.align, lineWs[i]));
-                bdX1 = Math.max(bdX1, lineX0(settings.align, lineWs[i]) + lineWs[i]);
-            });
-            if (refText) {
-                const ra = refOwnLine ? settings.refAlign : settings.align;
-                const rw = refOwnLine ? refW : lineWs[lines.length - 1];
-                bdX0 = Math.min(bdX0, lineX0(ra, rw));
-                bdX1 = Math.max(bdX1, lineX0(ra, rw) + rw);
-            }
-            const bdX = bdX0;
-            const bdW = bdX1 - bdX0;
-            const bdY = centerY - blockH / 2;
-            const padX = fontPx * 0.5, padY = fontPx * 0.45;
-
-            // 3. backdrop behind text
-            if (settings.backdrop === 'dim') {
-                c.save();
-                roundRectPath(c, bdX - padX, bdY - padY, bdW + padX * 2, blockH + padY * 2, fontPx * 0.45);
-                c.fillStyle = 'rgba(0,0,0,0.38)';
-                c.fill();
-                c.restore();
-            } else if (settings.backdrop === 'blur') {
-                c.save();
-                roundRectPath(c, bdX - padX, bdY - padY, bdW + padX * 2, blockH + padY * 2, fontPx * 0.45);
-                c.clip();
-                if (CANVAS_FILTER_SUPPORTED) {
-                    c.filter = 'blur(' + Math.round(w * 0.014) + 'px)';
-                    if (settings.ratio === 'original') {
-                        c.drawImage(originalImage, 0, 0, w, h);
-                    } else {
-                        drawCoverCrop(c, originalImage, w, h);
-                    }
-                    c.filter = 'none';
-                    // faint dim on top keeps white AND black text readable over blur
-                    c.fillStyle = 'rgba(0,0,0,0.14)';
-                    c.fill();
-                } else {
-                    // Older Safari: degrade gracefully to Dim
-                    c.fillStyle = 'rgba(0,0,0,0.38)';
-                    c.fill();
-                }
-                c.restore();
-            }
-
-            // 4. text with the chosen shadow — every run is drawn left-anchored
+            // 3. shadow + outline + text — every run is drawn left-anchored
             // at its computed x, so lines, the appended reference and the
             // own-line reference all share one alignment helper (lineX0).
-            c.shadowColor = settings.shadow === 'dark' ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.9)';
+            // Shadow color is AUTOMATIC: light text → black shadow, dark
+            // text → white shadow (no user choice since v28).
+            const shadowCol = autoShadowColor();
+            c.shadowColor = shadowCol;
             c.shadowBlur = 8 * sizeUnit;
             c.shadowOffsetX = 2 * sizeUnit;
             c.shadowOffsetY = 2 * sizeUnit;
             c.fillStyle = effectiveColor();
             c.textAlign = 'left';
             c.textBaseline = 'middle';
+
+            // Optional outline (stroke): drawn UNDER the fill — strokeText
+            // with the shadow paints the silhouette + shadow, then the fill
+            // goes on top WITHOUT a second shadow (which would double it).
+            const outlineCol = settings.outline === 'black' ? '#000000'
+                             : settings.outline === 'white' ? '#ffffff' : null;
+            if (outlineCol) {
+                c.strokeStyle = outlineCol;
+                c.lineJoin = 'round';
+                c.miterLimit = 2;
+            }
+            const drawRun = (txt, x, y, sizePx) => {
+                if (outlineCol) {
+                    c.lineWidth = Math.max(2, sizePx * 0.15);
+                    c.strokeText(txt, x, y);
+                    c.shadowColor = 'transparent';
+                    c.shadowBlur = 0;
+                    c.shadowOffsetX = 0;
+                    c.shadowOffsetY = 0;
+                    c.fillText(txt, x, y);
+                    c.shadowColor = shadowCol;
+                    c.shadowBlur = 8 * sizeUnit;
+                    c.shadowOffsetX = 2 * sizeUnit;
+                    c.shadowOffsetY = 2 * sizeUnit;
+                } else {
+                    c.fillText(txt, x, y);
+                }
+            };
+
             lines.forEach((lineText, i) => {
-                c.fillText(lineText, lineX0(settings.align, lineWs[i]), startY + (i * lineHeight));
+                drawRun(lineText, lineX0(settings.align, lineWs[i]), startY + (i * lineHeight), fontPx);
             });
             if (refText) {
                 c.font = 'italic ' + refPx + 'px "' + settings.font + '"';
                 if (refOwnLine) {
-                    // snug on its own row below the passage
+                    // snug on its own row below the passage — SAME alignment
+                    // as the passage (per spec, no separate reference choice)
                     const refY = startY + (lines.length - 1) * lineHeight + (lineHeight + refLineH(fontPx)) / 2;
-                    c.fillText(refText, lineX0(settings.refAlign, refW), refY);
+                    drawRun(refText, lineX0(settings.align, refW), refY, refPx);
                 } else {
                     // appended after the last passage line, same baseline
                     const lastLw = lineWs[lines.length - 1] - refGap - refW;   // original text width
                     const refX = lineX0(settings.align, lineWs[lines.length - 1]) + lastLw + refGap;
-                    c.fillText(refText, refX, startY + (lines.length - 1) * lineHeight);
+                    drawRun(refText, refX, startY + (lines.length - 1) * lineHeight, refPx);
                 }
             }
             c.shadowColor = 'transparent';
             c.shadowBlur = 0;
         }
 
-        // ── AUTO READABILITY ──────────────────────────────────────────
+        // ── AUTO READABILITY ──────────────────────────────────────────────
         // Measures the average brightness of the band where the text sits
-        // and picks the default pairing: bright area → black text + light
-        // shadow, dark area → white text + dark shadow. Nothing more — it
-        // only fills the INITIAL value and stands down the moment the user
-        // picks a color/shadow themselves (colorTouched), or when there is
-        // a manual choice carried over for this image.
+        // and picks the default color: bright area → black text, dark area
+        // → white text. The shadow follows automatically from the color
+        // (light→black shadow, dark→white). It only fills the INITIAL value
+        // and stands down the moment the user picks a color themselves
+        // (colorTouched), or when there is a manual choice carried over for
+        // this image.
         function autoContrast() {
             if (!currentImage || colorTouched) return;
             try {
@@ -1305,15 +1300,8 @@
                     lum += 0.2126 * band[i] + 0.7152 * band[i + 1] + 0.0722 * band[i + 2];
                 }
                 lum = lum / (band.length / 4) / 255;
-                if (lum > 0.55) {
-                    settings.colorMode = 'black';
-                    settings.shadow = 'light';
-                } else {
-                    settings.colorMode = 'white';
-                    settings.shadow = 'dark';
-                }
+                settings.colorMode = lum > 0.55 ? 'black' : 'white';
                 syncColorUI();
-                syncShadowUI();
                 if (typeof drawCanvas === 'function') drawCanvas();
             } catch (e) {
                 console.warn('autoContrast failed:', e);
@@ -1439,19 +1427,8 @@
             drawCanvas();
         }
 
-        // Alignment of the reference WHEN it sits on its own line; while it
-        // fits next to the last line of the passage it simply follows it.
-        function changeRefAlign(align, element) {
-            settings.refAlign = align;
-            persistSettings();
-            document.querySelectorAll('.ref-align-btn').forEach(el => {
-                el.classList.remove('active');
-                el.setAttribute('aria-pressed', 'false');
-            });
-            element.classList.add('active');
-            element.setAttribute('aria-pressed', 'true');
-            drawCanvas();
-        }
+        // Alignment of the reference always FOLLOWS the passage (per spec);
+        // the separate reference-alignment option was removed.
 
         // Canvas does not trigger @font-face loads by itself: the italic face
         // used for the reference must be requested explicitly and the canvas
@@ -1483,19 +1460,24 @@
                 el.classList.toggle('active', on);
                 el.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
-            document.querySelectorAll('.ref-align-btn').forEach(el => {
-                const on = el.getAttribute('data-ref-align') === settings.refAlign;
-                el.classList.toggle('active', on);
-                el.setAttribute('aria-pressed', on ? 'true' : 'false');
-            });
         }
 
-        // ── Color / shadow / backdrop controls ────────────────────────
+        // ── Color / outline / automatic shadow controls ───────────
         function changeColorMode(mode, element) {
             settings.colorMode = mode;
             colorTouched = true;
             persistSettings();
-            document.querySelectorAll('.color-swatch').forEach(el => {
+            syncColorUI();
+            drawCanvas();
+        }
+
+        // Outline: a stroke around the glyphs — none / black / white.
+        // (Does NOT touch colorTouched: the outline says nothing about the
+        // image brightness, so auto-contrast may still pick the color.)
+        function changeOutline(mode, element) {
+            settings.outline = mode;
+            persistSettings();
+            document.querySelectorAll('.outline-btn').forEach(el => {
                 el.classList.remove('active');
                 el.setAttribute('aria-pressed', 'false');
             });
@@ -1506,39 +1488,45 @@
             drawCanvas();
         }
 
-        function changeShadow(mode, element) {
-            settings.shadow = mode;
-            colorTouched = true;
-            persistSettings();
-            syncShadowUI();
-            drawCanvas();
-        }
-
-        function changeBackdrop(mode, element) {
-            settings.backdrop = mode;
-            persistSettings();
-            document.querySelectorAll('.backdrop-btn').forEach(el => el.classList.remove('active'));
-            if (element) element.classList.add('active');
-            drawCanvas();
-        }
-
         function syncColorUI() {
             // The Custom swatch wears the current custom color
             const customSwatch = document.querySelector('.color-swatch.custom');
             if (customSwatch) customSwatch.style.background = settings.customColor;
+            // The Average swatch wears the picture's mean color
+            const avgSwatch = document.querySelector('.color-swatch.avg');
+            if (avgSwatch) avgSwatch.style.background = imgAvgColor || '';
             document.querySelectorAll('.color-swatch').forEach(el => {
                 const mode = el.classList.contains('white') ? 'white'
-                           : el.classList.contains('black') ? 'black' : 'custom';
+                           : el.classList.contains('black') ? 'black'
+                           : el.classList.contains('avg') ? 'average' : 'custom';
                 const on = settings.colorMode === mode;
+                el.classList.toggle('active', on);
+                el.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            updateAutoShadowUI();
+        }
+
+        function syncOutlineUI() {
+            document.querySelectorAll('.outline-btn').forEach(el => {
+                const on = el.getAttribute('data-outline') === settings.outline;
                 el.classList.toggle('active', on);
                 el.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
         }
 
-        function syncShadowUI() {
-            document.querySelectorAll('.shadow-btn').forEach(el => {
-                el.classList.toggle('active', el.getAttribute('data-shadow') === settings.shadow);
-            });
+        // The shadow chip is an indicator, not a choice: it always shows the
+        // automatically picked shadow color for the current text color.
+        function updateAutoShadowUI() {
+            const chip = document.getElementById('shadow-auto-chip');
+            if (!chip) return;
+            chip.textContent = wpT(textLuminance() > 0.5 ? 'wp_o_black' : 'wp_o_white');
+            chip.classList.add('active');
+        }
+
+        // Mean color of the whole visible picture — recomputed whenever the
+        // image or the crop changes; worn by the "average" swatch.
+        function refreshAverageColor() {
+            imgAvgColor = averageImageColor();
         }
 
         // ── Custom color picker (in-house) ────────────────────────────
@@ -1829,7 +1817,7 @@
             updateRecentColorsDisplay();
             syncTypographyUI();
             syncColorUI();
-            syncShadowUI();
+            syncOutlineUI();
             if (dragHintDone) document.getElementById('drag-hint').style.display = 'none';
             // restore active ratio chip
             document.querySelectorAll('.ratio-btn').forEach(el => {
