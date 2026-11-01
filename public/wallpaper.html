@@ -26,8 +26,8 @@
     <meta property="og:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
     <meta property="og:locale" content="en_US">
 
-    <link rel="stylesheet" href="css/fonts.css?v=26">
-    <link rel="stylesheet" href="css/style.css?v=26">
+    <link rel="stylesheet" href="css/fonts.css?v=27">
+    <link rel="stylesheet" href="css/style.css?v=27">
 
     <style>
         /* ═══ Wallpaper Editor — 4-step wizard ═══
@@ -112,6 +112,7 @@
             /* Dragging the text must not scroll the page on touch devices */
             touch-action: none;
         }
+        #canvas-preview.can-pan,
         #canvas-preview.can-drag { cursor: grab; }
         #canvas-preview.dragging { cursor: grabbing; }
 
@@ -228,10 +229,8 @@
         .color-swatch.active { outline: 3px solid var(--green); outline-offset: 2px; }
         .color-swatch.white  { background: #ffffff; }
         .color-swatch.black  { background: #000000; }
-        .color-swatch.color-wheel {
-            background: conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
-            display: flex; align-items: center; justify-content: center;
-        }
+        /* The Custom swatch's background is the current custom color
+           (set by JS) — no conic rainbow wheel, that picker is gone. */
 
         /* Size slider */
         .slider-labels {
@@ -341,23 +340,104 @@
             margin: 0 0 14px;
             text-align: center;
         }
-        .color-input-wrapper {
+        /* ── Custom color picker (built in-house — the native
+           <input type="color"> popup was inconsistent and ugly) ── */
+        .cp-sv {
+            position: relative;
+            width: 100%;
+            height: 148px;
             border: 2px solid var(--ink);
             border-radius: var(--r-md);
-            overflow: hidden;
-            cursor: pointer;
+            cursor: crosshair;
+            touch-action: none;          /* drag must not scroll the page */
             margin-bottom: 12px;
         }
-        #color-picker-input { width: 100%; height: 64px; cursor: pointer; border: none; display: block; }
-        .color-input-label {
-            padding: 10px;
-            text-align: center;
+        .cp-knob {
+            position: absolute;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 2px var(--ink);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            left: 50%; top: 50%;
+        }
+        .cp-hue {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 20px;
+            border: 2px solid var(--ink);
+            border-radius: var(--r-pill);
+            outline: none;
+            cursor: pointer;
+            background: linear-gradient(to right,
+                #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+            margin-bottom: 12px;
+            padding: 0;
+        }
+        .cp-hue::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--ink);
+            cursor: pointer;
+            box-shadow: 2px 2px 0 0 var(--shadow-c);
+        }
+        .cp-hue::-moz-range-thumb {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--ink);
+            cursor: pointer;
+        }
+        .cp-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .cp-preview {
+            width: 40px; height: 40px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            border: 2px solid var(--ink);
+            box-shadow: 2px 2px 0 0 var(--shadow-c);
+            background: #81C784;
+        }
+        #cp-hex {
+            flex: 1;
+            min-width: 0;
+            padding: 11px 12px;
+            border: 2px solid var(--ink);
+            border-radius: var(--r-md);
             font-family: var(--font-ui);
             font-weight: 700;
-            font-size: 0.85rem;
-            color: var(--on-green);
-            background: var(--green-tint);
+            font-size: 0.9rem;
+            color: var(--ink);
+            background: var(--surface);
+            text-transform: uppercase;
         }
+        #cp-hex:focus { outline: 3px solid var(--green); outline-offset: 1px; }
+        .cp-avg {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            padding: 10px 12px;
+            background: var(--green-tint);
+            border: 2px solid var(--ink);
+            border-radius: var(--r-md);
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: var(--ink);
+            cursor: pointer;
+            box-shadow: 2px 2px 0 0 var(--shadow-c);
+        }
+        .cp-avg:active { transform: translate(1px, 1px); box-shadow: none; }
+        .cp-avg .material-icons-round { font-size: 18px; color: var(--green-text); }
         .recent-label {
             display: block;
             font-family: var(--font-ui);
@@ -464,6 +544,12 @@
                             <button class="chip ratio-btn" data-ratio="desktop" onclick="changeRatio('desktop', this)" data-i18n="wp_ratio_desktop">Computer</button>
                             <button class="chip ratio-btn" data-ratio="3:4" onclick="changeRatio('3:4', this)">3:4</button>
                         </div>
+
+                        <div class="drag-hint" id="pan-hint" style="display: none;">
+                            <span class="material-icons-round" aria-hidden="true">open_with</span>
+                            <span data-i18n="wp_pan_hint">Drag the picture to choose which part is visible</span>
+                        </div>
+
                         <div class="step-nav">
                             <button class="nav-btn primary" id="btn-next-1" onclick="gotoStep(2)" disabled>
                                 <span data-i18n="wp_next">Next</span>
@@ -543,7 +629,7 @@
                         <div class="chip-row">
                             <button class="color-swatch white" type="button" aria-pressed="false" onclick="changeColorMode('white', this)" title="White" aria-label="White" data-i18n-title="wp_c_white"></button>
                             <button class="color-swatch black" type="button" aria-pressed="false" onclick="changeColorMode('black', this)" title="Black" aria-label="Black" data-i18n-title="wp_c_black"></button>
-                            <button class="color-swatch color-wheel" type="button" aria-pressed="false" onclick="openColorPicker()" title="Custom color" aria-label="Custom color" data-i18n-title="wp_c_custom"></button>
+                            <button class="color-swatch custom" type="button" aria-pressed="false" onclick="openColorPicker()" title="Custom color" aria-label="Custom color" data-i18n-title="wp_c_custom"></button>
                         </div>
 
                         <label class="control-label" data-i18n="wp_shadow">Text Shadow</label>
@@ -596,16 +682,24 @@
         </main>
     </div>
 
-    <!-- Color Picker Modal -->
+        <!-- Color Picker Modal — custom-built: hue slider + saturation/
+             brightness square + hex field + the picture's average color -->
     <div id="color-modal" class="color-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="color-modal-title" onclick="closeColorPicker(event)">
         <div class="color-modal-card" onclick="event.stopPropagation()">
             <h3 class="color-modal-title" id="color-modal-title" data-i18n="wp_pick">Pick a color</h3>
 
-            <div class="color-input-wrapper" onclick="document.getElementById('color-picker-input').click()">
-                <input type="color" id="color-picker-input" onchange="handleColorPick(this.value)">
-                <div class="color-input-label" id="current-color-display" style="background: #81C784;" data-i18n="wp_choose">
-                    Tap to choose a color
-                </div>
+            <div class="cp-sv" id="cp-sv" aria-label="Saturation and brightness">
+                <div class="cp-knob" id="cp-knob" aria-hidden="true"></div>
+            </div>
+            <input type="range" class="cp-hue" id="cp-hue" min="0" max="360" value="120" aria-label="Hue">
+
+            <div class="cp-line">
+                <span class="cp-preview" id="cp-preview" aria-hidden="true"></span>
+                <input type="text" id="cp-hex" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#81C784" aria-label="Hex color value">
+                <button type="button" class="cp-avg" id="cp-avg" data-i18n-title="wp_avg_title">
+                    <span class="material-icons-round" aria-hidden="true">image_search</span>
+                    <span data-i18n="wp_avg">Average</span>
+                </button>
             </div>
 
             <div class="recent-colors">
@@ -625,11 +719,15 @@
     <script>
         // ═══════════════════════════════════════════════════════════════
         // CREDO Wallpaper Editor — 4-step wizard
-        //  1 Picture (upload + aspect ratio)   2 Typography (font, size,
-        //    alignment + the italic scripture reference)   3 Color
-        //    (color/shadow/backdrop)   4 Save / share
-        // Left/right margins and their lock were REMOVED by design; the
-        // vertical position is set by dragging the text on the preview.
+        //  1 Picture (upload, aspect ratio, DRAG TO PAN/CROP)   2
+        //    Typography (font, size, alignment, italic reference, drag
+        //    the TEXT)   3 Color (color/shadow/backdrop)   4 Save/share
+        // Dragging is contextual: step 1 moves the PICTURE inside its
+        // frame (which part stays visible), step 2 moves the TEXT
+        // vertically, steps 3–4 are static. The custom color picker is
+        // built in-house (hue slider + saturation/brightness square +
+        // hex field) and offers the picture's average color as a
+        // one-tap choice.
         // The reference ("- Luke 14:10") uses the same family and colour
         // as the passage, italic and smaller; it joins the last line when
         // it fully fits, otherwise it drops to its own line, aligned per
@@ -673,12 +771,13 @@
                 wp_shadow: 'Text Shadow', wp_shadow_dark: 'Dark', wp_shadow_light: 'Light',
                 wp_backdrop: 'Backdrop Behind Text', wp_bd_none: 'None', wp_bd_dim: 'Dim', wp_bd_blur: 'Blur',
                 wp_save: 'Save Wallpaper', wp_share: 'Share',
-                wp_pick: 'Pick a color', wp_choose: 'Tap to choose a color', wp_recent: 'Recent colors', wp_done: 'Done',
+                wp_pick: 'Pick a color', wp_recent: 'Recent colors', wp_done: 'Done',
+                wp_pan_hint: 'Drag the picture to choose which part is visible',
+                wp_avg: 'Average', wp_avg_title: "Use the picture's average color",
                 toast_saved_default: 'Wallpaper saved!',
                 toast_image_loaded: 'Image loaded ({w}\u00D7{h})',
                 toast_saved: 'Saved: {w}\u00D7{h}px',
-                toast_shared: 'Shared!',
-                toast_color: 'Color updated'
+                toast_shared: 'Shared!'
             }
         };
 
@@ -710,6 +809,12 @@
         let originalHeight = 0;
         let colorTouched = false;     // user picked color/shadow for THIS image → auto-contrast stands down
         let dragHintDone = localStorage.getItem('wpDragHintSeen') === '1';
+        let panHintDone = localStorage.getItem('wpPanHintSeen') === '1';
+
+        // Picture pan (step 1): offset inside the cover-crop, each axis in
+        // -1..1 where 0 is centered, -1 shows the left/top edge and 1 the
+        // right/bottom edge. Not persisted — a new image starts centered.
+        let imgPan = { x: 0, y: 0 };
 
         // Detected device aspect (max side / min side) for the Phone chip.
         let deviceRatio = 19.5 / 9;
@@ -790,8 +895,9 @@
             }
             document.getElementById('step-title').textContent = wpT(STEP_TITLES[n]);
             document.getElementById('btn-next-1').disabled = !currentImage;
-            // Dragging makes sense wherever the text can be repositioned
-            canvas.classList.toggle('can-drag', !!currentImage && (n === 2 || n === 3));
+            // Dragging is contextual: step 1 pans the PICTURE, step 2 moves
+            // the TEXT, steps 3–4 are static.
+            syncCanvasDragMode();
             const m = document.querySelector('main');
             if (m) m.scrollTo({ top: 0 });
             if (n === 4) updateExportSummary();
@@ -801,6 +907,16 @@
             const spec = ratioSpec(settings.ratio);
             const el = document.getElementById('export-summary');
             if (el) el.textContent = 'PNG · ' + spec.w + ' \u00D7 ' + spec.h + ' px · ' + settings.font;
+        }
+
+        // Canvas drag mode follows the step AND the presence of an image:
+        // it must also be refreshed when a picture is uploaded while the
+        // user is already sitting on step 1.
+        function syncCanvasDragMode() {
+            canvas.classList.toggle('can-pan', !!currentImage && currentStep === 1);
+            canvas.classList.toggle('can-drag', !!currentImage && currentStep === 2);
+            canvas.setAttribute('aria-label',
+                currentStep === 1 ? 'Picture position' : 'Text vertical position');
         }
 
         // ── Daily passage (liturgical calendar first, date-hash fallback) ──
@@ -893,12 +1009,18 @@
                     originalImage = img;
                     currentImage = img;
                     colorTouched = false;          // fresh image → auto-contrast may pick again
+                    imgPan = { x: 0, y: 0 };       // fresh image starts centered
 
                     setupCanvas();
                     document.getElementById('upload-prompt').style.display = 'none';
                     document.getElementById('change-btn').classList.add('visible');
                     document.getElementById('download-btn').disabled = false;
                     document.getElementById('btn-next-1').disabled = false;   // picture ready → step 1 unlocked
+                    if (!panHintDone) {
+                        const ph = document.getElementById('pan-hint');
+                        if (ph) ph.style.display = 'flex';
+                    }
+                    syncCanvasDragMode();          // picture ready → panning live on step 1
 
                     autoContrast();                 // pick readable color+shadow BEFORE first draw
                     drawCanvas();
@@ -944,8 +1066,12 @@
             const scale = Math.max(w / img.width, h / img.height);
             const sw = w / scale;
             const sh = h / scale;
-            const sx = (img.width - sw) / 2;
-            const sy = (img.height - sh) / 2;
+            const ovX = img.width - sw;          // total horizontal overflow
+            const ovY = img.height - sh;         // total vertical overflow
+            // imgPan is -1..1 from the centered position; clamped so the
+            // frame never shows empty space beyond the picture.
+            const sx = ovX > 0 ? Math.min(ovX, Math.max(0, ovX / 2 + imgPan.x * ovX / 2)) : 0;
+            const sy = ovY > 0 ? Math.min(ovY, Math.max(0, ovY / 2 + imgPan.y * ovY / 2)) : 0;
             context.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
         }
 
@@ -1194,31 +1320,52 @@
             }
         }
 
-        // ── DRAG the text vertically (mouse / touch / pen via Pointer Events) ──
-        let dragging = false;
+        // ── CANVAS DRAGGING (mouse / touch / pen via Pointer Events) ──
+        // Step 1: drag pans the PICTURE inside its frame — the user picks
+        // which part of the image stays visible and what gets cropped.
+        // Step 2: drag moves the TEXT vertically. Steps 3–4: no dragging.
+        let dragMode = null;             // 'pan' | 'text' | null
         let dragRaf = null;
+        let panStart = null;             // { x, y, panX, panY }
 
         canvas.addEventListener('pointerdown', (e) => {
-            if (!canvas.classList.contains('can-drag')) return;
-            dragging = true;
+            if (!currentImage) return;
+            if (currentStep === 1 && canvas.classList.contains('can-pan')) dragMode = 'pan';
+            else if (currentStep === 2 && canvas.classList.contains('can-drag')) dragMode = 'text';
+            else return;
             canvas.classList.add('dragging');
-            canvas.setPointerCapture(e.pointerId);
-            updateDragFromPointer(e);
+            try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* synthetic/invalid pointer */ }
+            if (dragMode === 'pan') {
+                panStart = { x: e.clientX, y: e.clientY, panX: imgPan.x, panY: imgPan.y };
+            } else {
+                updateTextDragFromPointer(e);
+            }
             e.preventDefault();
         });
         canvas.addEventListener('pointermove', (e) => {
-            if (!dragging) return;
-            updateDragFromPointer(e);
+            if (!dragMode) return;
+            if (dragMode === 'pan') updatePanFromPointer(e);
+            else updateTextDragFromPointer(e);
         });
         const endDrag = (e) => {
-            if (!dragging) return;
-            dragging = false;
+            if (!dragMode) return;
+            const wasText = dragMode === 'text';
+            const wasPan = dragMode === 'pan';
+            dragMode = null;
             canvas.classList.remove('dragging');
-            persistSettings();
-            if (!dragHintDone) {
-                dragHintDone = true;
-                localStorage.setItem('wpDragHintSeen', '1');
-                const hint = document.getElementById('drag-hint');
+            if (wasText) {
+                persistSettings();
+                if (!dragHintDone) {
+                    dragHintDone = true;
+                    localStorage.setItem('wpDragHintSeen', '1');
+                    const hint = document.getElementById('drag-hint');
+                    if (hint) hint.style.display = 'none';
+                }
+            }
+            if (wasPan && !panHintDone) {
+                panHintDone = true;
+                localStorage.setItem('wpPanHintSeen', '1');
+                const hint = document.getElementById('pan-hint');
                 if (hint) hint.style.display = 'none';
             }
             try { if (e.pointerId !== undefined) canvas.releasePointerCapture(e.pointerId); } catch (err) {}
@@ -1226,7 +1373,7 @@
         canvas.addEventListener('pointerup', endDrag);
         canvas.addEventListener('pointercancel', endDrag);
 
-        function updateDragFromPointer(e) {
+        function updateTextDragFromPointer(e) {
             const rect = canvas.getBoundingClientRect();
             const frac = (e.clientY - rect.top) / rect.height;
             settings.top = Math.round(Math.min(95, Math.max(5, frac * 100)));
@@ -1235,9 +1382,28 @@
             dragRaf = requestAnimationFrame(() => { dragRaf = null; drawCanvas(); });
         }
 
+        // Moving the pointer by one canvas width shifts the picture by one
+        // visible width; the offset is stored as a fraction of the total
+        // overflow so it survives ratio changes.
+        function updatePanFromPointer(e) {
+            if (!panStart || !originalImage) return;
+            const rect = canvas.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            const scale = Math.max(canvas.width / originalImage.width,
+                                   canvas.height / originalImage.height);
+            const ovX = originalImage.width - canvas.width / scale;
+            const ovY = originalImage.height - canvas.height / scale;
+            const dx = (e.clientX - panStart.x) * (canvas.width / rect.width) / scale;
+            const dy = (e.clientY - panStart.y) * (canvas.height / rect.height) / scale;
+            imgPan.x = ovX > 0 ? Math.min(1, Math.max(-1, panStart.panX - dx / (ovX / 2))) : 0;
+            imgPan.y = ovY > 0 ? Math.min(1, Math.max(-1, panStart.panY - dy / (ovY / 2))) : 0;
+            if (dragRaf) cancelAnimationFrame(dragRaf);
+            dragRaf = requestAnimationFrame(() => { dragRaf = null; drawCanvas(); });
+        }
+
         // Keyboard access to the same action (canvas is a role=slider)
         canvas.addEventListener('keydown', (e) => {
-            if (!canvas.classList.contains('can-drag')) return;
+            if (currentStep !== 2 || !canvas.classList.contains('can-drag')) return;
             if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                 e.preventDefault();
                 settings.top = Math.min(95, Math.max(5, settings.top + (e.key === 'ArrowUp' ? -2 : 2)));
@@ -1357,6 +1523,9 @@
         }
 
         function syncColorUI() {
+            // The Custom swatch wears the current custom color
+            const customSwatch = document.querySelector('.color-swatch.custom');
+            if (customSwatch) customSwatch.style.background = settings.customColor;
             document.querySelectorAll('.color-swatch').forEach(el => {
                 const mode = el.classList.contains('white') ? 'white'
                            : el.classList.contains('black') ? 'black' : 'custom';
@@ -1372,12 +1541,159 @@
             });
         }
 
-        // ── Color picker modal ────────────────────────────────────────
+        // ── Custom color picker (in-house) ────────────────────────────
+        // Hue slider + saturation/brightness square + hex field + the
+        // picture's average color as a one-tap choice. Replaces the
+        // native <input type="color"> popup entirely.
         let lastColorTrigger = null;
+        let cpState = { h: 99, s: 0.40, v: 0.78 };   // HSV of the default green
+        let cpOpenColor = null;                      // color when the modal opened
+        let cpRaf = null;
+        const cpSv = document.getElementById('cp-sv');
+        const cpKnob = document.getElementById('cp-knob');
+        const cpHue = document.getElementById('cp-hue');
+        const cpHex = document.getElementById('cp-hex');
+        const cpPreview = document.getElementById('cp-preview');
+        const cpAvgBtn = document.getElementById('cp-avg');
+
+        function hsvToRgb(h, s, v) {
+            const f = n => {
+                const k = (n + h / 60) % 6;
+                return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+            };
+            return [Math.round(f(5) * 255), Math.round(f(3) * 255), Math.round(f(1) * 255)];
+        }
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+        function hexToRgb(hex) {
+            const m = /^#?([0-9a-f]{6})$/i.exec((hex || '').trim());
+            if (!m) return null;
+            const n = parseInt(m[1], 16);
+            return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+        }
+        function rgbToHsv(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+            let h = 0;
+            if (d) {
+                if (max === r) h = ((g - b) / d) % 6;
+                else if (max === g) h = (b - r) / d + 2;
+                else h = (r - g) / d + 4;
+                h *= 60;
+                if (h < 0) h += 360;
+            }
+            return { h, s: max ? d / max : 0, v: max };
+        }
+
+        function applyCustomColor(hex) {
+            settings.colorMode = 'custom';
+            settings.customColor = hex;
+            colorTouched = true;
+            persistSettings();
+            syncColorUI();
+            drawCanvas();
+        }
+
+        // Push the current HSV state into the settings and the picker UI
+        function cpApply() {
+            const [r, g, b] = hsvToRgb(cpState.h, cpState.s, cpState.v);
+            applyCustomColor(rgbToHex(r, g, b));
+            cpSyncUI();
+        }
+
+        function cpSyncUI() {
+            const hex = settings.customColor;
+            cpPreview.style.background = hex;
+            if (document.activeElement !== cpHex) cpHex.value = hex;
+            cpSv.style.background =
+                'linear-gradient(to top, #000, rgba(0,0,0,0)), ' +
+                'linear-gradient(to right, #fff, rgba(255,255,255,0)), ' +
+                'hsl(' + Math.round(cpState.h) + ', 100%, 50%)';
+            cpKnob.style.left = (cpState.s * 100) + '%';
+            cpKnob.style.top = ((1 - cpState.v) * 100) + '%';
+            if (document.activeElement !== cpHue) cpHue.value = Math.round(cpState.h);
+        }
+
+        function cpApplySoon() {
+            if (cpRaf) cancelAnimationFrame(cpRaf);
+            cpRaf = requestAnimationFrame(() => { cpRaf = null; cpApply(); });
+        }
+
+        // SV square: pointer position = saturation (x) and brightness (y)
+        let cpDragging = false;
+        cpSv.addEventListener('pointerdown', (e) => {
+            cpDragging = true;
+            try { cpSv.setPointerCapture(e.pointerId); } catch (err) { /* synthetic/invalid pointer */ }
+            cpSvFromEvent(e);
+            e.preventDefault();
+        });
+        cpSv.addEventListener('pointermove', (e) => { if (cpDragging) cpSvFromEvent(e); });
+        ['pointerup', 'pointercancel'].forEach(t =>
+            cpSv.addEventListener(t, () => { cpDragging = false; }));
+        function cpSvFromEvent(e) {
+            const r = cpSv.getBoundingClientRect();
+            cpState.s = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+            cpState.v = 1 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+            cpApplySoon();
+        }
+
+        cpHue.addEventListener('input', () => {
+            cpState.h = parseInt(cpHue.value, 10) || 0;
+            cpApplySoon();
+        });
+
+        cpHex.addEventListener('change', () => {
+            const rgb = hexToRgb(cpHex.value);
+            if (rgb) {
+                cpState = rgbToHsv(rgb[0], rgb[1], rgb[2]);
+                cpApply();
+            } else {
+                cpHex.value = settings.customColor;    // invalid input → revert
+            }
+        });
+        cpHex.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); cpHex.blur(); }
+        });
+
+        // One-tap "Average": the mean color of the WHOLE visible picture
+        cpAvgBtn.addEventListener('click', () => {
+            const hex = averageImageColor();
+            if (!hex) return;
+            const rgb = hexToRgb(hex);
+            cpState = rgbToHsv(rgb[0], rgb[1], rgb[2]);
+            cpApply();
+        });
+
+        function averageImageColor() {
+            if (!originalImage) return null;
+            try {
+                const s = document.createElement('canvas');
+                s.width = 32; s.height = 32;
+                const sc = s.getContext('2d');
+                if (settings.ratio === 'original') {
+                    sc.drawImage(originalImage, 0, 0, 32, 32);
+                } else {
+                    drawCoverCrop(sc, originalImage, 32, 32);
+                }
+                const d = sc.getImageData(0, 0, 32, 32).data;
+                let r = 0, g = 0, b = 0;
+                const n = d.length / 4;
+                for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+                return rgbToHex(Math.round(r / n), Math.round(g / n), Math.round(b / n));
+            } catch (e) {
+                console.warn('averageImageColor failed:', e);
+                return null;
+            }
+        }
 
         function openColorPicker() {
             lastColorTrigger = document.activeElement;
+            const rgb = hexToRgb(settings.customColor) || [129, 199, 132];
+            cpState = rgbToHsv(rgb[0], rgb[1], rgb[2]);
+            cpOpenColor = settings.customColor;
             updateRecentColorsDisplay();
+            cpSyncUI();
             const modal = document.getElementById('color-modal');
             modal.classList.add('open');
             const done = modal.querySelector('.close-color-modal');
@@ -1385,32 +1701,19 @@
         }
 
         function closeColorPicker(e) {
-            if (!e || e.target.id === 'color-modal' || e.target.classList.contains('close-color-modal')) {
+            const isDoneBtn = e && e.target && e.target.closest && e.target.closest('.close-color-modal');
+            if (!e || e.target.id === 'color-modal' || isDoneBtn) {
                 const modal = document.getElementById('color-modal');
                 modal.classList.remove('open');
+                // One recents entry per picker session, not per drag frame
+                if (settings.colorMode === 'custom' && settings.customColor !== cpOpenColor) {
+                    addToRecentColors(settings.customColor);
+                    updateRecentColorsDisplay();
+                }
+                cpOpenColor = null;
                 if (lastColorTrigger && typeof lastColorTrigger.focus === 'function') lastColorTrigger.focus();
                 lastColorTrigger = null;
             }
-        }
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && document.getElementById('color-modal').classList.contains('open')) {
-                closeColorPicker();
-            }
-        });
-
-        function handleColorPick(color) {
-            settings.colorMode = 'custom';
-            settings.customColor = color;
-            colorTouched = true;
-            persistSettings();
-            document.getElementById('current-color-display').style.background = color;
-            document.getElementById('color-picker-input').value = color;
-            syncColorUI();
-            addToRecentColors(color);
-            updateRecentColorsDisplay();
-            drawCanvas();
-            showToast(wpT('toast_color'));
         }
 
         function addToRecentColors(color) {
@@ -1437,15 +1740,13 @@
         }
 
         function selectRecentColor(color) {
-            settings.colorMode = 'custom';
-            settings.customColor = color;
-            colorTouched = true;
-            persistSettings();
-            document.getElementById('current-color-display').style.background = color;
-            document.getElementById('color-picker-input').value = color;
-            syncColorUI();
-            addToRecentColors(color);
-            drawCanvas();
+            const rgb = hexToRgb(color);
+            if (rgb) {
+                cpState = rgbToHsv(rgb[0], rgb[1], rgb[2]);
+                applyCustomColor(color);
+                cpSyncUI();
+            }
+            closeColorPicker();     // picking a recent is decision enough
         }
 
         // ── Export: save / share ──────────────────────────────────────
@@ -1529,8 +1830,6 @@
             syncTypographyUI();
             syncColorUI();
             syncShadowUI();
-            document.getElementById('current-color-display').style.background = settings.customColor;
-            document.getElementById('color-picker-input').value = settings.customColor;
             if (dragHintDone) document.getElementById('drag-hint').style.display = 'none';
             // restore active ratio chip
             document.querySelectorAll('.ratio-btn').forEach(el => {

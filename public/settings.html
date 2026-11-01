@@ -34,8 +34,8 @@
     <meta name="twitter:description" content="Credo app settings: font size, wallpaper editor, backup and restore.">
     <meta name="twitter:image" content="https://credo.labram.workers.dev/og-image.png">
     <meta name="twitter:image:alt" content="Credo – daily Gospel verse, Berean Standard Bible">
-    <link rel="stylesheet" href="css/fonts.css?v=26">
-    <link rel="stylesheet" href="css/style.css?v=26">
+    <link rel="stylesheet" href="css/fonts.css?v=27">
+    <link rel="stylesheet" href="css/style.css?v=27">
 </head>
 <body data-page="settings">
 
@@ -47,24 +47,9 @@
         <main>
             <h2 style="margin-top:0; font-size: 1.4rem; color: var(--ink); font-family: var(--font-display); font-weight: 400; text-transform: uppercase;" data-i18n="settings">Settings</h2>
 
-            <!-- Saved passages (favorites + notes): moved here from the bottom
-                 navigation when the Bible tab arrived. The page itself still
-                 lives at /saved so existing bookmarks and PWA shortcuts work. -->
-            <div class="card">
-                <div class="setting-item" style="border-bottom: none;">
-                    <span class="setting-label">
-                        <span class="material-icons-round" aria-hidden="true" style="vertical-align:-5px; margin-right:6px; color: var(--green-text);">bookmark</span>
-                        <span data-i18n="saved_link">Saved Passages</span>
-                    </span>
-                    <div class="setting-control">
-                        <a href="saved" class="btn btn-primary" style="text-decoration: none;">
-                            <span data-i18n="nav_saved">Saved</span>
-                        </a>
-                    </div>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: right; margin-top: -6px;" data-i18n="saved_link_desc">Your favorites and notes</div>
-            </div>
-
+            <!-- 1 · PWA install card. Hidden until the browser fires
+                 beforeinstallprompt (js/app.js shows it) — but whenever it
+                 IS visible it must always be the very first card. -->
             <div id="install-pwa-btn" class="card" style="display: none; align-items: center; justify-content: space-between; border-color: var(--green); padding: 20px;">
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <span class="material-icons-round" aria-hidden="true" style="color: var(--accent-color); font-size: 32px;">download_for_offline</span>
@@ -76,18 +61,34 @@
                 <button class="btn btn-primary" onclick="installPWA()" style="width: auto; padding: 10px 20px;" data-i18n="pwa_install_btn">Install</button>
             </div>
 
-            <div class="card">
-                <div class="setting-item" style="border-bottom: none;">
-                    <span class="setting-label" data-i18n="wallpaper_editor">Wallpaper Editor</span>
-                    <div class="setting-control">
-                        <a href="wallpaper" class="btn btn-primary" style="text-decoration: none;">
-                            <span class="material-icons-round" aria-hidden="true">wallpaper</span>
-                            <span data-i18n="open_wallpaper">Open Editor</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
+            <!-- 2 · Wallpaper Editor — a full card you can tap anywhere,
+                 not just a button. -->
+            <a class="card link-card" href="wallpaper" aria-label="Open the Wallpaper Editor">
+                <span class="link-card-icon" aria-hidden="true">
+                    <span class="material-icons-round">wallpaper</span>
+                </span>
+                <span class="link-card-body">
+                    <span class="link-card-title" data-i18n="wallpaper_editor">Wallpaper Editor</span>
+                    <span class="link-card-desc">Turn a Bible verse into a wallpaper — picture, text and colors in four quick steps.</span>
+                </span>
+                <span class="material-icons-round link-card-chevron" aria-hidden="true">chevron_right</span>
+            </a>
 
+            <!-- 3 · Saved Passages — same full-card treatment, with a live
+                 count of favorites and notes. The page itself still lives
+                 at /saved so existing bookmarks and PWA shortcuts work. -->
+            <a class="card link-card" href="saved" aria-label="Open Saved Passages">
+                <span class="link-card-icon" aria-hidden="true">
+                    <span class="material-icons-round">bookmark</span>
+                </span>
+                <span class="link-card-body">
+                    <span class="link-card-title" data-i18n="saved_link">Saved Passages</span>
+                    <span class="link-card-desc" id="saved-count-desc">Your favorites and notes</span>
+                </span>
+                <span class="material-icons-round link-card-chevron" aria-hidden="true">chevron_right</span>
+            </a>
+
+            <!-- 4 · Font size, backup, restore -->
             <div class="card">
                 <div class="setting-item">
                     <label class="setting-label" id="font-size-label" data-i18n="font_size">Font Size</label>
@@ -113,6 +114,7 @@
                 </div>
             </div>
 
+            <!-- 5 · Bible translation license -->
             <div class="card">
                 <div class="setting-item" style="border-bottom: none;">
                     <span class="setting-label">Bible Translation</span>
@@ -148,12 +150,33 @@
         <span id="toast-message">Message</span>
     </div>
 
-    <script src="js/app.js?v=26"></script>
+    <script src="js/app.js?v=27"></script>
     <script>
+        // Live count for the Saved Passages card: "2 favorites · 1 note"
+        function updateSavedCount() {
+            let favs = 0, notes = 0;
+            try {
+                const raw = JSON.parse(localStorage.getItem('favorites') || '[]');
+                if (Array.isArray(raw)) favs = raw.length;
+            } catch (e) { /* keep 0 */ }
+            try {
+                notes = Object.keys(localStorage).filter(k => k.indexOf('note_') === 0).length;
+            } catch (e) { /* keep 0 */ }
+            const el = document.getElementById('saved-count-desc');
+            if (!el) return;
+            if (favs === 0 && notes === 0) {
+                el.textContent = 'Your favorites and notes';
+                return;
+            }
+            el.textContent = favs + ' favorite' + (favs === 1 ? '' : 's') +
+                ' \u00B7 ' + notes + ' note' + (notes === 1 ? '' : 's');
+        }
+
         // Initialize settings page
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
             updateTexts();
+            updateSavedCount();
             requestAnimationFrame(() => {
                 updateControlUI('font-control', localStorage.getItem('fontSize') || 'medium');
             });

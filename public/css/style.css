@@ -502,6 +502,61 @@ main::-webkit-scrollbar { display: none; }
 /* ═══ SETTINGS ═══════════════════════════════════════════ */
 .setting-item { margin-bottom: 35px; }
 
+/* Full-card links (Wallpaper Editor / Saved Passages): the whole card
+   is tappable, with an icon, a title, a description and a chevron —
+   not just a lone button on the right. */
+a.card.link-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+}
+a.card.link-card:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow-lg); }
+a.card.link-card:active { transform: translate(1px, 1px); box-shadow: var(--shadow-sm); }
+a.card.link-card:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
+
+.link-card-icon {
+    width: 46px; height: 46px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--green-tint);
+    border: 2px solid var(--ink);
+    border-radius: var(--r-md);
+}
+.link-card-icon .material-icons-round { font-size: 24px; color: var(--green-text); }
+
+.link-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.link-card-title {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--ink);
+}
+.link-card-desc {
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+.link-card-chevron {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 26px;
+    color: var(--ink-soft);
+}
+
 .setting-label {
     font-size: 0.85rem;
     color: var(--ink-soft);
